@@ -5,6 +5,7 @@ This project act as a template to create new web interfaces for the SSDN Matlab 
 Sections:
 * [Server Requirements](#server-requirements)
 * [Client Requirements](#client-requirements)
+* [Running the server](#running-the-server)
 
 ---
 
