@@ -1,0 +1,40 @@
+
+input.hidden { display: none; }
+
+#map-canvas {
+	height: 400px;
+	margin: 0px;
+	padding: 0px;
+}
+
+#legend {
+	background: #FFF;
+	padding: 10px;
+	margin: 5px;
+	font-size: 12px;
+	font-family: Arial, sans-serif;
+}
+
+#legend img {
+	width: 24px;
+	height: 24px;
+}
+.console {
+	width: 300px;
+	height: 200px;
+	border: 1px solid;
+	overflow: auto;
+}
+
+.console_container {
+	float: left;
+	display: block;
+	margin: 10px;
+	border: 1px solid;
+}
+
+
+table {
+	border: 1px solid black;
+	border-radius: 5px;
+}

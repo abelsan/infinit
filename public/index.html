@@ -1,0 +1,387 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="description" content="">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>INFINIT Simulator</title>
+		<link rel="author" href="humans.txt">
+		<link rel="stylesheet" type="text/css" href="css/style.css">
+	</head>
+	<body>
+		<div id="input">
+			<label for="userID">User ID:</label>
+			<input type="text" name="userID" id="userID" size="5" value="1" readonly/>
+			<label for="simID">Simulation ID:</label>
+			<input type="text" name="simID" id="simID" size="40" readonly/>
+
+			<h2>Infinit</h2>
+			<div>
+				<table>
+					<tr>
+						<th>
+							<h4>Multi-Objective weights</h4>
+						</th>
+						<th>
+							<h4>Optimization boundaries</h4>
+						</th>
+					</tr>
+					<tr>
+						<td>
+							<label for="cost">Cost = </label><input type="text" placeholder="1.0" id="cost" name="cost" size="5" value="1.0" />
+							<br>
+							<label for="co2">CO2 = </label><input type="text" placeholder="0.00" id="co2" name="co2" size="5" value="0.00" />
+						</td>
+						<td>
+							<label for="timelimit">Time limit(sec) = </label><input type="text" placeholder="30" id="timelimit" name="timelimit" size="5" value="3" />
+							<br>
+							<label for="optimality">Optimality gap = </label><input type="text" placeholder="0.03" id="optimality" name="optimality" size="5" value="0.03"/>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<br>
+			<button id="b_run_model" onclick="runModel()">Run Remote Model</button>
+			<br>
+		</div>
+		<div id="output">
+			<h2>
+				Output
+			</h2>
+			<input type="button" onclick="test()" value="Plot a saved result on map (DEBUG)" />
+			<!-- <div id="output_selector"> -->
+			<form id="output_selector" name="output_selector">
+				Display:
+				<input type="checkbox" id="cb_all" name="cb_all" onchange="updateMap()" checked />
+				<label for="cb_all">All</label>
+			</form>
+			<!-- </div> -->
+			<div>
+				<!-- TODO: Add a legend box to the map. -->
+				<div id="map-canvas"></div>
+				<div id="indicators">
+					<label for="kpi_cost">Cost : </label><input type="text" id="kpi_cost" name="kpi_cost" size="10" />
+					<br>
+					<label for="kpi_CAPEX">CAPEX : </label><input type="text" id="kpi_CAPEX" name="kpi_CAPEX" size="10" />
+					<br>
+					<label for="kpi_OPEX">OPEX : </label><input type="text" id="kpi_OPEX" name="kpi_OPEX" size="10" />
+					<br>
+					<label for="kpi_CO2">CO2 : </label><input type="text" id="kpi_CO2" name="kpi_CO2" size="10" />
+					<br>
+					<label for="kpi_potable">Potable : </label><input type="text" id="kpi_potable" name="kpi_potable" size="10" />
+					<br>
+					<label for="kpi_totalLossWater">Total loss water : </label><input type="text" id="kpi_totalLossWater" name="kpi_totalLossWater" size="10" />
+					<br>
+					<label for="kpi_electricity">Electricity : </label><input type="text" id="kpi_electricity" name="kpi_electricity" size="10" />
+				</div>
+			</div>
+			<br>
+			<div id="execution_output">
+				<div class='console_container'>
+					<span>Model's execution standard output:</span>
+					<div id='stdout' class='console'>
+						none
+					</div>
+				</div>
+				<div class='console_container'>
+					<span>Model's execution error output:</span>
+					<div id='stderr' class='console'>
+						empty
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Scripts -->
+
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+		<script src="js/papaparse.js"></script>
+		<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=true"></script>
+		<script src="js/UUID.js/dist/uuid.core.js">// If you only need UUID.generate() method </script>
+		<script>
+			var domain_name = window.location.hostname;
+			//var server_addr = 'churro.mit.edu:8080';
+			// var server_addr = 'localhost:8080';
+			var server_addr = domain_name + ':8080';
+			var in_userID,
+				simID;
+			var cost,
+			    co2,
+			    timelimit,
+			    optimality;
+			var simulation_result = {};
+
+			var map = {"map":null,"options":null};
+			var markers = [];
+
+			// Generate a unique simulation identifier
+			var generateSimID = function () {
+				var simID = document.getElementById("simID");
+				simID.value = UUID.generate();
+			};
+
+			var runModel = function() {
+				$("#b_run_model").prop( 'disabled', true );
+
+			    var in_userID = $("#userID").val().trim();
+			    var in_simID = $("#simID").val().trim();
+			    var in_cost = $("#cost").val().trim();
+			    var in_co2 = $("#co2").val().trim();
+			    var in_timelimit = $("#timelimit").val().trim();
+			    var in_optimality = $("#optimality").val().trim();
+
+			    var resource = 'http://' + server_addr + '/output?' +
+			    			'userID=' + in_userID +
+			    			'&simID=' + in_simID +
+			    			'&cost=' + in_cost +
+			    			'&co2=' + in_co2 +
+			    			'&timelimit=' + in_timelimit +
+			    			'&optimality=' + in_optimality;
+
+			    // console.log('resource: ' + resource);
+
+			    //GET request to server with variables for executing Octave program function with parameters
+			    $.get(resource, function(data) {
+			        $('#stdout').append(data.msg.stdout);
+			        $('#stderr').append(data.msg.stderr);
+
+			        simulation_result = data; // Backup results gotten from the server.
+
+			        plotMap(data);
+					updateIndicators(data);
+
+					// $("#b_run_model").prop( 'disabled', true );
+			    });
+			};
+
+
+			var test = function () {
+			    var resource = 'http://' + server_addr + '/test';
+
+			    $.get(resource, function(data) {
+			        simulation_result = data; // Backup results gotten from the server.
+
+					plotMap(data);
+					updateIndicators(data);
+				});
+			};
+
+			// Graphic design specification for the map
+			var map_design_format = {
+				// Edges
+				"pipeline": {
+					"name" : "Pipeline (water/energy)",
+					"existing":{
+						path: [], // Do not change
+						geodesic: true, // Do not change
+						strokeColor: '#4D4D4D',
+						strokeOpacity: 1.0,
+						strokeWeight: 2,
+						"name": "Existing pipeline"
+					},
+					"candid":{
+						path: [], // Do not change
+						geodesic: true, // Do not change
+						strokeColor: '#FF0000',
+						strokeOpacity: 1.0,
+						strokeWeight: 2,
+						"name": "Candidate pipeline"
+					}
+				},
+				// Nodes
+				"desal": {
+					"name" : "Desalination plant",
+					"existing":{
+						"image":"images/drinkingwater_green.png",
+						"name": "Desalination plant existing"
+					},
+					"candid":{
+						"image":"images/drinkingwater_red.png",
+						"name": "Desalination plant candidate"
+					}
+				},
+				"power": {
+					"name" : "Power plant",
+					"power": {
+						"image":"images/solarenergy_blue.png"
+					}
+				},
+				"city": {
+					"name" : "City",
+					"with_wastewater_treatment":{
+						"image":"images/bigcity.png",
+						"name": "City with wastewater treatment"
+					},
+					"without_wastewater_treatment":{
+						"image":"images/ghosttown.png",
+						"name": "City without wastewater treatment"
+					}
+				}
+			};
+
+			// Returns an object with the display check boxes states.
+			var getSelectedCheckboxes = function (id) {
+				var res = {};
+				var selected = $("#"+id+" :checkbox");
+
+				for (var i = 0; i < selected.length; i++) {
+					if ( selected[i].checked )
+						res[selected[i].name.replace("cb_","")] = true;
+				}
+
+				return res;
+			};
+
+			var drawEdges = function (map,data) {
+				var line = [];
+				var pipe;
+				var opts;
+				var selected = getSelectedCheckboxes( "output_selector" );
+
+				for (var i = data.length - 1; i >= 0; i--) {
+					if ( !selected.all && !selected[ data[i][0] ] )
+						continue;
+
+					// Get an options prototype:
+					opts = map_design_format[ data[i][0] ][ data[i][1] ];
+					line.push(new google.maps.LatLng(
+						parseFloat(data[i][2]),
+						parseFloat(data[i][3])) );
+		        	line.push(new google.maps.LatLng(
+		        		parseFloat(data[i][4]),
+		        		parseFloat(data[i][5])) );
+		        	opts.path = line; // Set the options variable field.
+
+		        	// Create and draw the line
+					pipe = new google.maps.Polyline( opts );
+					pipe.setMap(map.map);
+
+					markers.push(pipe);
+
+					line.length = 0;
+				}
+			};
+
+			var drawNodes = function (map,data) {
+				var selected = getSelectedCheckboxes( "output_selector" );
+
+				for (var i = data.length - 1; i >= 0; i--) {
+					if ( !selected.all && !selected[ data[i][0] ] )
+						continue;
+
+					var pos = new google.maps.LatLng(
+						parseFloat(data[i][2]),
+						parseFloat(data[i][3]) );
+
+					var marker = new google.maps.Marker({
+						position: pos,
+						map: map.map,
+						icon: map_design_format[ data[i][0] ][ data[i][1] ].image
+					});
+
+					markers.push(marker);
+				}
+			};
+
+			var updateIndicators = function (data) {
+				$('#kpi_cost').val( data.msg.result_network.indicators.cost );
+				$('#kpi_CAPEX').val( data.msg.result_network.indicators.CAPEX );
+				$('#kpi_OPEX').val( data.msg.result_network.indicators.OPEX );
+				$('#kpi_CO2').val( data.msg.result_network.indicators.CO2 );
+				$('#kpi_potable').val( data.msg.result_network.indicators.potable );
+				$('#kpi_totalLossWater').val( data.msg.result_network.indicators.totalLossWater );
+				$('#kpi_electricity').val( data.msg.result_network.indicators.electricity );
+			};
+
+			// Sets the map on all markers in the array.
+			function setAllMap(map) {
+				for (var i = 0; i < markers.length; i++) {
+					markers[i].setMap(map);
+				}
+			}
+
+			// Removes the markers from the map, but keeps them in the array.
+			function clearMarkers() {
+				setAllMap(null);
+			}
+
+			// Deletes all markers in the array by removing references to them.
+			function deleteMarkers() {
+				clearMarkers();
+				markers = [];
+			}
+
+			var updateMap = function (raw_data) {
+				var data = raw_data || simulation_result;
+
+				deleteMarkers();
+
+				plotMap(data);
+			};
+
+			function initMap(map,elemID) {
+			    map.options = {
+			        zoom: 6,
+			        // center: new google.maps.LatLng(29.2907, 34.9299),
+			        center: new google.maps.LatLng(24.624548, 46.772919),
+			        mapTypeId: google.maps.MapTypeId.ROADMAP
+			    };
+			    map.map = new google.maps.Map(document.getElementById(elemID), map.options);
+
+				// Create the legend and display on the map
+				var legend = document.createElement('div');
+				legend.id = 'legend';
+				var content = [];
+				content.push('<h3>Legend</h3>');
+
+				content.push("<p><img src='"+map_design_format.city.with_wastewater_treatment.image+"'>"+ map_design_format.city.with_wastewater_treatment.name + "</p>");
+				content.push("<p><img src='"+map_design_format.city.without_wastewater_treatment.image+"'>"+ map_design_format.city.without_wastewater_treatment.name + "</p>");
+
+				content.push("<p><img src='"+map_design_format.desal.existing.image+"'>"+ map_design_format.desal.existing.name + "</p>");
+				content.push("<p><img src='"+map_design_format.desal.candid.image+"'>"+ map_design_format.desal.candid.name + "</p>");
+
+				content.push("<p><span style='color:"+map_design_format.pipeline.existing.strokeColor+"'>"+ map_design_format.pipeline.existing.name + "</span></p>");
+				content.push("<p><span style='color:"+map_design_format.pipeline.candid.strokeColor+"'>"+ map_design_format.pipeline.candid.name + "</span></p>");
+
+				content.push("<p><img src='"+map_design_format.power.power.image+"'>"+ map_design_format.power.name + "</p>");
+
+				legend.innerHTML = content.join('');
+				legend.index = 1;
+				map.map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(legend);
+			}
+
+			function plotMap(raw_data) {
+				var edges = raw_data.msg.result_network.edges;
+				var nodes = raw_data.msg.result_network.nodes;
+
+			    drawEdges(map,edges);
+			    drawNodes(map,nodes);
+			}
+
+			// Insert the check boxes to select what to draw on the map.
+			var generateOutputSelectors = function () {
+				var output_keys = Object.keys(map_design_format);
+				var selector;
+
+				for (var i = 0; i < output_keys.length; i++) {
+					selector = "<div>" +
+									"<input " +
+										"type='checkbox' " +
+										"name='cb_" + output_keys[i] + "' " +
+										"id='cb_" + output_keys[i] + "' " +
+										"onchange='updateMap()' " +
+										"/>" +
+									"<label for='cb_" + output_keys[i] + "'>" +
+										map_design_format[ output_keys[i] ].name +
+									"</label>" +
+								"</div>";
+					$( selector ).appendTo("#output_selector");
+				}
+			};
+
+			window.addEventListener('load', initMap(map,'map-canvas') );
+			generateSimID();
+			generateOutputSelectors();
+		</script>
+	</body>
+</html>
