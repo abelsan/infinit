@@ -113,6 +113,7 @@ Now, you can open the web browser on the address [http://localhost:8080/](http:/
 ### Change log
 
 *  ** 0.0.0 ** - Initial version. - [Roberto][roberto]
+*  ** 0.1.0 ** - Switch to ExtJS based interface. - [Roberto][roberto]
 
 
 
