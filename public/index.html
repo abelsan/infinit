@@ -95,7 +95,7 @@
 		<!-- Scripts -->
 
 		<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-		<script src="js/papaparse.js"></script>
+		<!-- <script src="js/papaparse.js"></script> -->
 		<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=true"></script>
 		<script src="js/UUID.js/dist/uuid.core.js">// If you only need UUID.generate() method </script>
 		<script>
@@ -320,6 +320,9 @@
 			};
 
 			function initMap(map,elemID) {
+				var legend,
+					content = [];
+
 			    map.options = {
 			        zoom: 6,
 			        // center: new google.maps.LatLng(29.2907, 34.9299),
@@ -329,9 +332,8 @@
 			    map.map = new google.maps.Map(document.getElementById(elemID), map.options);
 
 				// Create the legend and display on the map
-				var legend = document.createElement('div');
+				legend = document.createElement('div');
 				legend.id = 'legend';
-				var content = [];
 				content.push('<h3>Legend</h3>');
 
 				content.push("<p><img src='"+map_design_format.city.with_wastewater_treatment.image+"'>"+ map_design_format.city.with_wastewater_treatment.name + "</p>");

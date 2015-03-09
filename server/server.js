@@ -6,7 +6,8 @@ var url = require('url');
 
 // Platform parameters
 var in_userID,
-	in_simID;
+	in_simID,
+	in_sessionID;
 
 // Model input parameters
 var in_cost,
@@ -22,6 +23,7 @@ app.get('/output', function(req, res) {
 
 	in_userID = url_parts.query.userID;
 	in_simID = url_parts.query.simID;
+	in_sessionID = url_parts.query.sessionID;
 	in_cost = url_parts.query.cost;
 	in_co2 = url_parts.query.co2;
 	in_timelimit = url_parts.query.timelimit;
@@ -34,7 +36,7 @@ app.get('/output', function(req, res) {
 				'run_infinit_pre('+
 					in_userID+','+
 					"'"+in_simID+"',"+
-					// '1'+','+
+					"'"+in_sessionID+"',"+
 					in_cost+','+
 					in_co2+','+
 					in_timelimit+','+
@@ -140,6 +142,13 @@ app.get('/test', function(req, res) {
 
 // Serve the web files, like 'index.html' and 'style.css'.
 app.use("/", express.static(__dirname + "/../public"));
+
+///////////
+// Important!
+// Set this directory path properly:
+// It is where Sencha files are:
+//		(the relative path to the directory "ext-5.1.0-gpl")
+// app.use("/sencha", express.static(__dirname + "/../../extjs/ext-5.1.0-gpl"));
 
 app.listen(PORT);
 

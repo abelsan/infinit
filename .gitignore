@@ -1,0 +1,9 @@
+
+
+# log files
+*.log
+log.txt
+
+# backup files
+*.m~
+

@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Network Model</title>
+		<script type="text/javascript" src="js/ext/build/ext-all.js"></script>
+        <link rel="stylesheet" type="text/css" href="js/ext/packages/ext-theme-neptune/build/resources/ext-theme-neptune-all.css">
+		<link rel="stylesheet" type="text/css" href="css/style.css">
+		<script type="text/javascript" src="js/ext/packages/ext-theme-neptune/build/ext-theme-neptune.js"></script>
+		<!-- <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script> -->
+		<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=true"></script>
+        <script src="js/UUID.js/dist/uuid.core.js">// If you only need UUID.generate() method </script>
+
+
+<script>
+
+var timeout_tol = 10000; // {ms} XHR calls timeout tolerance.
+
+Ext.Loader.setConfig({enabled: true});
+Ext.Loader.setPath('Ext.ux', 'js/ext/src/ux');
+Ext.require([
+    // 'Ext.window.*',
+    'Ext.ux.GMapPanel'
+]);
+
+Ext.application({
+    name: 'MyApp',
+
+    launch: function () {
+
+        var runModel;
+        // var showCurrentNetwork; ////////////
+        var initial_network;
+        var current_network;
+        var simulation_result;
+
+
+        Ext.getBody().setStyle('overflow', 'auto');
+
+        // Generate a unique simulation identifier
+        var generateSimID = function () {
+            var simID = Ext.getCmp('simID');
+            simID.setValue( UUID.generate() );
+        };
+
+		var bt_uploadHandler = function () {
+		    var form = this.up('form').getForm();
+		    if (form.isValid()) {
+		        form.submit({
+		            url: 'php', // Server API to upload a file
+		            waitMsg: 'Uploading your file...',
+		            success: function (fp, o) {
+		                Ext.Msg.alert('Success', 'Your file "' + o.result.file + '" has been uploaded.');
+		            }
+		        });
+		    }
+		};
+
+        function fn_display_mode_changed() {
+            if ( this.getValue() ){
+                Ext.getCmp('cb_all').setValue(false);
+            }
+
+            var h_map = Ext.getCmp('googleMap').gmap;
+            plotMap(h_map,current_network);
+        }
+
+        // main panel
+        var childPanel1 = Ext.create('Ext.panel.Panel', {
+            extend: 'Ext.container.Viewport',
+            layout: 'border',
+
+            title: 'KSA Water/Energy INFINT Model 1.0',
+            titleAlign: 'center',
+            height: 750,
+            width: 1400,
+            vertical: true,
+            items: [{
+                    region: 'north',
+                    height: 10,
+                }, {
+                    // main west panel
+                    xtype: 'panel',
+                    region: 'west',
+                    width: 300,
+
+                    items: [{
+                            region: 'north',
+                            height: 10,
+                        }, {
+                            xtype: 'panel',
+                            region: 'west',
+                            title: 'User info',
+                            split: true,
+                            bodyPadding: 10,
+                            frame: true,
+                            items: [ {
+                                defaultType: 'textfield',
+                                items: [{
+                                    fieldLabel: 'User ID',
+                                    id: 'userID',
+                                    name: 'userID',
+                                    value: 1,
+                                    readOnly: true,
+                                }, {
+                                    fieldLabel: 'Simulation ID',
+                                    id: 'simID',
+                                    name: 'simID',
+                                    value: 123,
+                                    readOnly: true,
+                                }, {
+                                    fieldLabel: 'Session',
+                                    id: 'sessionID',
+                                    name: 'sessionID',
+                                    value: 123,
+                                    readOnly: true,
+                                }]
+                            }]
+                        }, {
+                            height: 10,
+                        }, {
+                            // west panel #1 for loading the database
+                            xtype: 'panel',
+                            region: 'west',
+                            html: '',
+                            title: 'Step 1: Database ',
+                            split: true,
+                            bodyPadding: 10,
+                            frame: true,
+                            items: [
+                                {
+                                    xtype      : 'fieldcontainer',
+                                    fieldLabel : 'Use database',
+                                    defaultType: 'radiofield',
+                                    defaults: {
+                                        flex: 1
+                                    },
+                                    layout: 'hbox',
+                                    items: [
+                                        {
+                                            boxLabel  : 'Default',
+                                            name      : 'db_src',
+                                            inputValue: 'src_default',
+                                            id        : 'radio1',
+                                            checked: true,
+                                        }, {
+                                            boxLabel  : 'New',
+						                    name      : 'db_src',
+						                    inputValue: 'src_new_file',
+						                    id        : 'radio2'
+						                }
+						            ]
+                                }, {
+                                    xtype: 'filefield',
+                                    width: '100%',
+                                    name: 'file',
+                                    msgTarget: 'side',
+                                    allowBlank: false,
+                                    anchor: '100%',
+                                    buttonText: 'Select File',
+                                    disabled: true,
+                                }, {
+                                    xtype: 'button',
+                                    text: 'Upload',
+                                    id: 'b_upload_file',
+                                    disabled: true,
+                                    handler: function() {
+                                        bt_uploadHandler();
+                                    },
+                                }
+                            ]
+                        }, {
+                            region: 'north',
+                            height: 10,
+                        }, {
+                            // west panel #2 for inputs
+                            xtype: 'panel',
+                            region: 'west',
+                            title: 'Step 2: Optimization ',
+                            split: true,
+                            bodyPadding: 10,
+                            frame: true,
+                            autoScroll: true,
+                            items: [
+                                {
+                                    html: ' <h4 style="color:gray; margin-bottom:0px;">Cost (%)</h4>',
+                                }, {
+                                    xtype: 'sliderfield',
+                                    id: 'cost',
+                                    width: '100%',
+                                    value: 100,
+                                    minValue: 0,
+                                    maxValue: 100,
+                                }, {
+                                    html: ' <h4 style="color:gray;margin-bottom:0px; margin-top:5px;">CO2 (%)</h4>',
+                                }, {
+                                    xtype: 'sliderfield',
+                                    id: 'co2',
+                                    width: '100%',
+                                    value: 0,
+                                    minValue: 0,
+                                    maxValue: 100,
+                                }, {
+                                    html: ' <h4 style="color:gray;margin-bottom:0px; margin-top:10px;">Optimize Network Flow under</h4>',
+                                }, {
+                                    defaultType: 'textfield',
+                                    width: '100%',
+                                    items: [{
+                                        fieldLabel: 'Time Limit (Seconds)',
+                                        id: 'timelimit',
+                                        name: 'TimeLimit',
+                                        value: 30,
+                                    }, {
+                                        fieldLabel: 'Optimality Gap',
+                                        id: 'optimality',
+                                        name: 'optimalityGap',
+                                        value: 0.03,
+                                    }]
+                                }, {
+                                    xtype: 'button',
+                                    text: 'Run',
+                                    id: 'b_run_model',
+                                    // handler: runModel,
+                                    handler: function() {
+                                        runModel();
+                                    },
+                                }
+                            ]
+                        }
+                    ]
+                }, {
+                    // main center panel
+                    xtype: 'panel',
+                    itemId: 'centerregion',
+                    region: 'center',
+                    bodyPadding: 40,
+                    items: [
+                        {
+                            // center panel #1 -> google map + display modes
+                            xtype: 'panel',
+                            itemId: 'centerregion',
+                            region: 'center',
+                            bodyPadding: 5,
+                            frame: 'true',
+                            height: 550,
+							layout:'fit',
+                            items: [{
+                                xtype: 'gmappanel',
+								gmapType: 'map',
+								id: 'googleMap',
+								center: {
+									lat: 24.7,
+									lng: 46.7,
+								},
+								// mapConfOpts: ['enableScrollWheelZoom','enableDoubleClickZoom','enableDragging'],
+								mapOptions: {
+									zoom: 5,
+									mapTypeId: google.maps.MapTypeId.ROADMAP,
+								}
+                        	}]
+                        }, {
+                            html: ' <h4 style="color:gray;margin-bottom:0px; margin-top:10px;font-size:20px;">Display Modes</h4>',
+                        }, {
+                            xtype: 'checkboxgroup',
+                            id: 'cb_display_group',
+                            name: 'cb_display_group',
+                            columns: 5,
+                            vertical: false,
+                            items: [{
+                                    boxLabel: 'All ',
+                                    id: 'cb_all',
+                                    name: 'cb_display',
+                                    inputValue: '1',
+                                    checked: true,
+                                    handler: function () {
+                                        if ( this.getValue() ){
+                                            Ext.getCmp('cb_pipeline').setValue(false);
+                                            Ext.getCmp('cb_city').setValue(false);
+                                            Ext.getCmp('cb_power').setValue(false);
+                                            Ext.getCmp('cb_desal').setValue(false);
+                                        }
+
+                                        var h_map = Ext.getCmp('googleMap').gmap;
+                                        plotMap(h_map,current_network);
+                                    }
+                                }, {
+                                    boxLabel: 'Pipelines',
+                                    id: 'cb_pipeline',
+                                    name: 'cb_display',
+                                    inputValue: '2',
+                                    handler: fn_display_mode_changed,
+                                }, {
+                                    boxLabel: 'City',
+                                    id: 'cb_city',
+                                    name: 'cb_display',
+                                    inputValue: '3',
+                                    handler: fn_display_mode_changed,
+                                }, {
+                                    boxLabel: 'Power Plant',
+                                    id: 'cb_power',
+                                    name: 'cb_display',
+                                    inputValue: '4',
+                                    handler: fn_display_mode_changed,
+                                }, {
+                                    boxLabel: 'Desalination Plant',
+                                    id: 'cb_desal',
+                                    name: 'cb_display',
+                                    inputValue: '5',
+                                    handler: fn_display_mode_changed,
+                                }, {
+                                    boxLabel: 'Legend',
+                                    id: 'cb_legend',
+                                    name: 'cb_display',
+                                    inputValue: '6',
+                                    checked: true,
+                                    handler: function () {
+                                        if ( this.getValue() ) {
+                                            // Show legend
+                                            Ext.get('legend').setStyle('display', 'block');
+                                        } else {
+                                            // Hide legend
+                                            Ext.get('legend').setStyle('display','none');
+                                        }
+                                    }
+                                },
+                            ],
+                        }
+                    ]
+                }, {
+                    // main East panel
+                    xtype: 'panel',
+                    region: 'east',
+                    width: 300,
+                    height: 50,
+                    title: 'Results',
+                    split: false,
+                    items: [
+                        {
+                            region: 'north',
+                            height: 10,
+                        }, {
+                            // east panel #1 shows results
+                            xtype: 'panel',
+                            region: 'east',
+                            width: 300,
+                            height: 540,
+                            split: false,
+                            bodyPadding: 10,
+                            frame: true,
+                            items: [
+								{
+                                    defaultType: 'textfield',
+                                    width: 300,
+                                    items: [{
+                                            fieldLabel: 'Optimization Terminated due to',
+                                            id: 'OptiTermDueTo',
+                                            name: 'OptiTermDueTo',
+                                            readOnly: true,
+                                            value: 'Not started',
+                                        }, {
+                                            fieldLabel: 'Total Cost (MUSD/year)',
+                                            id: 'kpi_cost',
+                                            name: 'TotalCost',
+                                            readOnly: true,
+                                            value: '0.0',
+                                        }, {
+                                            fieldLabel: 'Total CAPEX (MUSD/year)',
+                                            id: 'kpi_CAPEX',
+                                            name: 'TotalCAPEX',
+                                            readOnly: true,
+                                            value: '0.0',
+                                        }, {
+                                            fieldLabel: 'Total OPEX (MUSD/year)',
+                                            id: 'kpi_OPEX',
+                                            name: 'TotalOPEX',
+                                            readOnly: true,
+                                            value: '0.0',
+                                        }, {
+                                            fieldLabel: 'Total CO2 Emission (MMT/year)',
+                                            id: 'kpi_CO2',
+                                            name: 'TotalCO2',
+                                            readOnly: true,
+                                            value: '0.0',
+                                        }, {
+                                            fieldLabel: 'Total Potable Water Production (MCM/year)',
+                                            id: 'kpi_potable',
+                                            name: 'TotalPotableWater',
+                                            readOnly: true,
+                                            value: '0.0',
+                                        }, {
+                                            fieldLabel: 'Total Water loss in Pipeline (%)',
+                                            id: 'kpi_totalLossWater',
+                                            name: 'TotalWaterLoss',
+                                            readOnly: true,
+                                            value: '0.0',
+                                        }, {
+                                            fieldLabel: 'Total Electricity Generation (GWh/year)',
+                                            id: 'kpi_electricity',
+                                            name: 'TotalElectricity',
+                                            readOnly: true,
+                                            value: '0.0',
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }); // childPanel1
+
+        Ext.create('Ext.container.Viewport', {
+            items: [childPanel1]
+        });
+
+
+        //////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////
+        // from: index.html
+        //
+
+		var map_handler = {"map":null,"options":null};
+		var markers = [];
+
+		var domain_name = window.location.hostname;
+		var server_addr = domain_name + ':8080';
+
+		var showInitialNetwork = function (h_map) {
+		    var resource = 'http://' + server_addr + '/test';
+
+            // Request user data through an XHR.
+            Ext.Ajax.request({
+                url: resource,
+                success: function(response, opts) {
+                    var obj = Ext.decode(response.responseText);
+                    // Backup results gotten from the server.
+                    initial_network = obj;
+                    current_network = initial_network;
+
+    				plotMap(h_map,current_network);
+                    insertLegend(h_map);
+                },
+                failure: function(response, opts) {
+                    console.log('server-side failure with status code ' + response.status);
+                }
+            });
+
+            // var runModel = function() {
+            runModel = function() {
+                Ext.getCmp('b_run_model').setDisabled(true);
+
+                var in_userID = Ext.getCmp('userID').getValue().trim();
+                var in_simID = Ext.getCmp('simID').getValue().trim();
+                var in_sessionID = Ext.getCmp('sessionID').getValue().trim();
+                var in_cost = Ext.getCmp('cost').getValue()/100;
+                var in_co2 = Ext.getCmp('co2').getValue()/100;
+                var in_timelimit = Ext.getCmp('timelimit').getValue().trim();
+                var in_optimality = Ext.getCmp('optimality').getValue().trim();
+
+                var resource = 'http://' + server_addr + '/output?' +
+                            'userID=' + in_userID +
+                            '&simID=' + in_simID +
+                            '&sessionID=' + in_sessionID +
+                            '&cost=' + in_cost +
+                            '&co2=' + in_co2 +
+                            '&timelimit=' + in_timelimit +
+                            '&optimality=' + in_optimality;
+
+                // console.log('resource: ' + resource);
+
+                var total_timeout = in_timelimit + timeout_tol;
+
+                // Request user data through an XHR.
+                Ext.Ajax.request({
+                    url: resource,
+                    timeout: total_timeout,
+                    success: function(response, opts) {
+                        var obj = Ext.decode(response.responseText);
+                        // console.dir(obj);
+
+                        // Backup results gotten from the server.
+                        current_network = obj;
+
+                        plotMap(h_map,current_network);
+                        updateIndicators(current_network);
+
+                        console.log('stdout: '+ current_network.msg.stdout);
+                        console.log('stderr: '+ current_network.msg.stderr);
+                        // Done.
+                    },
+                    failure: function(response, opts) {
+                        console.log('server-side failure with status code: ' + statusText + ' (Code '+ response.status + ')');
+                        console.dir(response);
+                    }
+                });
+            };
+
+		};
+
+		var insertLegend = function (h_map) {
+			var legend,
+				content = [];
+
+			// Create the legend and display on the map
+			legend = document.createElement('div');
+			legend.id = 'legend';
+			content.push('<h3>Legend</h3>');
+
+			content.push("<p><img src='"+map_design_format.city.with_wastewater_treatment.image+"'>"+ map_design_format.city.with_wastewater_treatment.name + "</p>");
+			content.push("<p><img src='"+map_design_format.city.without_wastewater_treatment.image+"'>"+ map_design_format.city.without_wastewater_treatment.name + "</p>");
+
+			content.push("<p><img src='"+map_design_format.desal.existing.image+"'>"+ map_design_format.desal.existing.name + "</p>");
+			content.push("<p><img src='"+map_design_format.desal.candid.image+"'>"+ map_design_format.desal.candid.name + "</p>");
+
+			content.push("<p><span style='color:"+map_design_format.pipeline.existing.strokeColor+"'>"+ map_design_format.pipeline.existing.name + "</span></p>");
+			content.push("<p><span style='color:"+map_design_format.pipeline.candid.strokeColor+"'>"+ map_design_format.pipeline.candid.name + "</span></p>");
+
+			content.push("<p><img src='"+map_design_format.power.power.image+"'>"+ map_design_format.power.name + "</p>");
+
+			legend.innerHTML = content.join('');
+			legend.index = 1;
+			h_map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(legend);
+		};
+
+
+		// Graphic design specification for the map
+		var map_design_format = {
+			// Edges
+			'pipeline': {
+				'name' : 'Pipeline (water/energy)',
+				'existing':{
+					path: [], // Do not change
+					geodesic: true, // Do not change
+					strokeColor: '#4D4D4D',
+					strokeOpacity: 1.0,
+					strokeWeight: 2,
+					'name': 'Existing pipeline'
+				},
+				'candid':{
+					path: [], // Do not change
+					geodesic: true, // Do not change
+					strokeColor: '#FF0000',
+					strokeOpacity: 1.0,
+					strokeWeight: 2,
+					'name': 'Candidate pipeline'
+				}
+			},
+			// Nodes
+			'desal': {
+				'name' : 'Desalination plant',
+				'existing':{
+					'image':'images/drinkingwater_green.png',
+					'name': 'Desalination plant existing'
+				},
+				'candid':{
+					'image':'images/drinkingwater_red.png',
+					'name': 'Desalination plant candidate'
+				}
+			},
+			'power': {
+				'name' : 'Power plant',
+				'power': {
+					'image':'images/solarenergy_blue.png'
+				}
+			},
+			'city': {
+				'name' : 'City',
+				'with_wastewater_treatment':{
+					'image':'images/bigcity.png',
+					'name': 'City with wastewater treatment'
+				},
+				'without_wastewater_treatment':{
+					'image':'images/ghosttown.png',
+					'name': 'City without wastewater treatment'
+				}
+			}
+		};
+
+		// Returns an object with the display check boxes states.
+		var getSelectedCheckboxes = function (id) {
+			var res = {};
+			// var selected = $("#"+id+" :checkbox");
+
+            var selected = Ext.getCmp('cb_display_group').getChecked();
+
+			for (var i = 0; i < selected.length; i++) {
+				if ( selected[i].checked )
+					res[selected[i].id.replace("cb_","")] = true;
+			}
+
+			return res;
+		};
+
+        // var createEdges = function (h_map,data) {
+		var createEdges = function (data) {
+			var line = [];
+			var pipe;
+			var opts;
+			var selected = getSelectedCheckboxes( "output_selector" );
+
+			for (var i = data.length - 1; i >= 0; i--) {
+				if ( !selected.all && !selected[ data[i][0] ] )
+					continue;
+
+				// Get an options prototype:
+				opts = map_design_format[ data[i][0] ][ data[i][1] ];
+				line.push(new google.maps.LatLng(
+					parseFloat(data[i][2]),
+					parseFloat(data[i][3])) );
+	        	line.push(new google.maps.LatLng(
+	        		parseFloat(data[i][4]),
+	        		parseFloat(data[i][5])) );
+	        	opts.path = line; // Set the options variable field.
+
+	        	// Create and draw the line
+				pipe = new google.maps.Polyline( opts );
+
+				markers.push(pipe);
+
+				line.length = 0;
+			}
+		};
+
+        // var createNodes = function (h_map,data) {
+		var createNodes = function (data) {
+			var selected = getSelectedCheckboxes( "output_selector" );
+
+			for (var i = data.length - 1; i >= 0; i--) {
+				if ( !selected.all && !selected[ data[i][0] ] )
+					continue;
+
+				var pos = new google.maps.LatLng(
+					parseFloat(data[i][2]),
+					parseFloat(data[i][3]) );
+
+				var marker = new google.maps.Marker({
+					position: pos,
+					icon: map_design_format[ data[i][0] ][ data[i][1] ].image
+				});
+
+				markers.push(marker);
+			}
+		};
+
+        // Sets the map on all markers in the array.
+        function setAllMap(h_map) {
+            for (var i = 0; i < markers.length; i++) {
+                markers[i].setMap(h_map);
+            }
+        }
+
+        // Removes the markers from the map, but keeps them in the array.
+        function clearMarkers() {
+            setAllMap(null);
+        }
+
+        // Deletes all markers in the array by removing references to them.
+        function deleteMarkers() {
+            clearMarkers();
+            markers = [];
+        }
+
+		function plotMap(h_map,raw_data) {
+			var edges = raw_data.msg.result_network.edges;
+			var nodes = raw_data.msg.result_network.nodes;
+
+            // Remove old markers and lines
+            deleteMarkers();
+
+            // Create graph elements
+		    createEdges(edges);
+		    createNodes(nodes);
+
+            // Draw markers and lines on the map
+            setAllMap(h_map);
+		}
+
+        var updateIndicators = function (data) {
+            Ext.getCmp('OptiTermDueTo').setValue( data.msg.result_network.exit_status.msg );
+            Ext.getCmp('kpi_cost').setValue( data.msg.result_network.indicators.cost );
+            Ext.getCmp('kpi_CAPEX').setValue( data.msg.result_network.indicators.CAPEX );
+            Ext.getCmp('kpi_OPEX').setValue( data.msg.result_network.indicators.OPEX );
+            Ext.getCmp('kpi_CO2').setValue( data.msg.result_network.indicators.CO2 );
+            Ext.getCmp('kpi_potable').setValue( data.msg.result_network.indicators.potable );
+            Ext.getCmp('kpi_totalLossWater').setValue( data.msg.result_network.indicators.totalLossWater );
+            Ext.getCmp('kpi_electricity').setValue( data.msg.result_network.indicators.electricity );
+        };
+
+        // Generate a unique Simulation ID
+        generateSimID();
+
+        // load initial state or default data
+        var h_map = Ext.getCmp('googleMap').gmap;
+        showInitialNetwork(h_map);
+
+
+		//
+        // from: index.html
+        //////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////
+
+    } // launch
+
+
+});
+
+   </script>
+    </head>
+    <body></body>
+	</html>

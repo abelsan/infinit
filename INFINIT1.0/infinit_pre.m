@@ -203,7 +203,7 @@ handles.fx = handles.fall'*x;
 handles.xyz = splitvw(x,handles.v,handles.w,handles.vw,handles.E);
 
 if output.cplexstatus == 102
-    handles.termination{handles.i} = ['Time Limit of ' num2str(options.timelimit) ' sec'];
+    handles.termination{handles.i} = ['Optimality Gap of ' num2str(options.parameter2009) '%'];
     disp(handles.termination{handles.i});
 elseif output.cplexstatus == 107
     handles.termination{handles.i} = ['Time Limit of ' num2str(options.timelimit) ' sec'];
@@ -250,10 +250,13 @@ result.optimality_gap = parameter2009;
 result.indicators = indicators;
 result.nodes = nodes'; % Data is read in column-wise order.
 result.edges = edges'; % Data is read in column-wise order.
+result.exit_status.cplexstatus = output.cplexstatus; % Data is read in column-wise order.
+result.exit_status.msg = handles.termination{handles.i}; % Data is read in column-wise order.
 
 % Simulation settings
 result.userID = settings.userID;
 result.simID = settings.simID; % Simulation ID
+result.sessionID = settings.sessionID; % Session ID
 result.date_end = datestr(now); % Finish date
 
 % status = store_on_db(settings.db_name, settings.collection, result);

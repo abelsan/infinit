@@ -1,8 +1,9 @@
-function status = run_infinit_pre(userID,simID,cost,CO2,timelimit,optimality)
+function status = run_infinit_pre(userID,simID,sessionID,cost,CO2,timelimit,optimality)
 
 %% Set structure input values for the infinit wrapper function:
 settings.userID = userID;
 settings.simID = simID;
+settings.sessionID = sessionID;
 
 % TODO: Find a proper place for these values
 % System scope values
