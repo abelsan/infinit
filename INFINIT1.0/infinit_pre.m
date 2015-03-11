@@ -24,7 +24,7 @@ disp(['Loading data from file: ' filename]);
 addpath('/opt/ibm/ILOG/CPLEX_Studio126/cplex/matlab/');
 addpath('../matlab');
 
-% Dinamic: load mongodb java driver
+% Dynamic: load mongodb java driver
 javaaddpath('../mongodb/mongo-java-driver.jar');
 % Static:
 %   To load mongodb java driver a file called 'javaclasspath.txt' must

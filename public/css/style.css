@@ -34,7 +34,7 @@ input.hidden { display: none; }
 }
 
 
-table {
+#atable {
 	border: 1px solid black;
 	border-radius: 5px;
 }

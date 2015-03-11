@@ -140,6 +140,52 @@ app.get('/test', function(req, res) {
 });
 
 
+app.get('/initial_network', function(req, res) {
+	console.log("Loading results from DB");
+
+	var findDocument = function(db, callback) {
+		// Get the documents collection
+		var collection = db.collection('test_coll');
+		// Find the simulation results
+		collection.findOne({'id':'initial_network'}, {}, function(err, doc) {
+			assert.equal(err, null);
+			assert.notEqual(doc, null); // We expect only 1 document.
+			console.log("Found the following records:");
+			console.dir(doc);
+			callback(doc);
+		});
+	};
+
+	var MongoClient = require('mongodb').MongoClient,
+		assert = require('assert');
+
+	// Connection URL
+	var db_url = 'mongodb://localhost:27017/test_db';
+	// Use connect method to connect to the Server
+	MongoClient.connect(db_url, function(err, db) {
+		assert.equal(null, err);
+		console.log("Connected correctly to server");
+
+		findDocument(db, function(doc) {
+			res.send({
+	  			'msg': {
+	  				'result_network': {
+	  					'nodes': doc.nodes,
+	  					'edges': doc.edges,
+	  				},
+	  				// 'result_network':doc,
+	  				'files':"none" ,
+	  				'stdout':"Nothing" ,
+	  				'stderr':"Nothing"
+	  			}
+	  		});
+
+			db.close();
+		});
+	});
+});
+
+
 // Serve the web files, like 'index.html' and 'style.css'.
 app.use("/", express.static(__dirname + "/../public"));
 

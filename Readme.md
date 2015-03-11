@@ -116,6 +116,23 @@ Now, you can open the web browser on the address [http://localhost:8080/](http:/
 *  ** 0.1.0 ** - Switch to ExtJS based interface. - [Roberto][roberto]
 
 
+----
+
+### TODO
+
+In no specific order:
+
+- Show the initial network state when the page is loaded for first time (fix the previous progress bullet point).
+- Allow the user to upload a new Excel file (database).
+- Change color of pipelines,
+	- grayed dashed lines for 'potential' ones,
+	- solid black for existing ones, and
+    - red for proposed ones.
+- Create a new control for moving along results of a same session.
+- Create a new control to change user's session.
+- Plot 'Total CO2 Emission' vs 'Total Cost'.
+
+
 
 [ubuntu14]:http://releases.ubuntu.com/14.04/
 [install-mongodb-on-ubuntu]:http://docs.mongodb.org/manual/tutorial/install-mongodb-on-ubuntu/

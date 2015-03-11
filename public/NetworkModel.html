@@ -6,7 +6,6 @@
         <link rel="stylesheet" type="text/css" href="js/ext/packages/ext-theme-neptune/build/resources/ext-theme-neptune-all.css">
 		<link rel="stylesheet" type="text/css" href="css/style.css">
 		<script type="text/javascript" src="js/ext/packages/ext-theme-neptune/build/ext-theme-neptune.js"></script>
-		<!-- <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script> -->
 		<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=true"></script>
         <script src="js/UUID.js/dist/uuid.core.js">// If you only need UUID.generate() method </script>
 
@@ -19,7 +18,7 @@ Ext.Loader.setConfig({enabled: true});
 Ext.Loader.setPath('Ext.ux', 'js/ext/src/ux');
 Ext.require([
     // 'Ext.window.*',
-    'Ext.ux.GMapPanel'
+    'Ext.ux.GMapPanel' // Alternative: https://gist.github.com/minibikini/1160378
 ]);
 
 Ext.application({
@@ -32,7 +31,6 @@ Ext.application({
         var initial_network;
         var current_network;
         var simulation_result;
-
 
         Ext.getBody().setStyle('overflow', 'auto');
 
@@ -68,344 +66,357 @@ Ext.application({
         var childPanel1 = Ext.create('Ext.panel.Panel', {
             extend: 'Ext.container.Viewport',
             layout: 'border',
-
-            title: 'KSA Water/Energy INFINT Model 1.0',
-            titleAlign: 'center',
             height: 750,
             width: 1400,
-            vertical: true,
-            items: [{
-                    region: 'north',
-                    height: 10,
-                }, {
-                    // main west panel
-                    xtype: 'panel',
-                    region: 'west',
-                    width: 300,
-
-                    items: [{
-                            region: 'north',
-                            height: 10,
-                        }, {
-                            xtype: 'panel',
-                            region: 'west',
-                            title: 'User info',
-                            split: true,
-                            bodyPadding: 10,
-                            frame: true,
-                            items: [ {
-                                defaultType: 'textfield',
-                                items: [{
-                                    fieldLabel: 'User ID',
-                                    id: 'userID',
-                                    name: 'userID',
-                                    value: 1,
-                                    readOnly: true,
-                                }, {
-                                    fieldLabel: 'Simulation ID',
-                                    id: 'simID',
-                                    name: 'simID',
-                                    value: 123,
-                                    readOnly: true,
-                                }, {
-                                    fieldLabel: 'Session',
-                                    id: 'sessionID',
-                                    name: 'sessionID',
-                                    value: 123,
-                                    readOnly: true,
-                                }]
-                            }]
-                        }, {
-                            height: 10,
-                        }, {
-                            // west panel #1 for loading the database
-                            xtype: 'panel',
-                            region: 'west',
-                            html: '',
-                            title: 'Step 1: Database ',
-                            split: true,
-                            bodyPadding: 10,
-                            frame: true,
-                            items: [
-                                {
-                                    xtype      : 'fieldcontainer',
-                                    fieldLabel : 'Use database',
-                                    defaultType: 'radiofield',
-                                    defaults: {
-                                        flex: 1
-                                    },
-                                    layout: 'hbox',
-                                    items: [
-                                        {
-                                            boxLabel  : 'Default',
-                                            name      : 'db_src',
-                                            inputValue: 'src_default',
-                                            id        : 'radio1',
-                                            checked: true,
-                                        }, {
-                                            boxLabel  : 'New',
-						                    name      : 'db_src',
-						                    inputValue: 'src_new_file',
-						                    id        : 'radio2'
-						                }
-						            ]
-                                }, {
-                                    xtype: 'filefield',
-                                    width: '100%',
-                                    name: 'file',
-                                    msgTarget: 'side',
-                                    allowBlank: false,
-                                    anchor: '100%',
-                                    buttonText: 'Select File',
-                                    disabled: true,
-                                }, {
-                                    xtype: 'button',
-                                    text: 'Upload',
-                                    id: 'b_upload_file',
-                                    disabled: true,
-                                    handler: function() {
-                                        bt_uploadHandler();
-                                    },
-                                }
-                            ]
-                        }, {
-                            region: 'north',
-                            height: 10,
-                        }, {
-                            // west panel #2 for inputs
-                            xtype: 'panel',
-                            region: 'west',
-                            title: 'Step 2: Optimization ',
-                            split: true,
-                            bodyPadding: 10,
-                            frame: true,
-                            autoScroll: true,
-                            items: [
-                                {
-                                    html: ' <h4 style="color:gray; margin-bottom:0px;">Cost (%)</h4>',
-                                }, {
-                                    xtype: 'sliderfield',
-                                    id: 'cost',
-                                    width: '100%',
-                                    value: 100,
-                                    minValue: 0,
-                                    maxValue: 100,
-                                }, {
-                                    html: ' <h4 style="color:gray;margin-bottom:0px; margin-top:5px;">CO2 (%)</h4>',
-                                }, {
-                                    xtype: 'sliderfield',
-                                    id: 'co2',
-                                    width: '100%',
-                                    value: 0,
-                                    minValue: 0,
-                                    maxValue: 100,
-                                }, {
-                                    html: ' <h4 style="color:gray;margin-bottom:0px; margin-top:10px;">Optimize Network Flow under</h4>',
-                                }, {
-                                    defaultType: 'textfield',
-                                    width: '100%',
-                                    items: [{
-                                        fieldLabel: 'Time Limit (Seconds)',
-                                        id: 'timelimit',
-                                        name: 'TimeLimit',
-                                        value: 30,
-                                    }, {
-                                        fieldLabel: 'Optimality Gap',
-                                        id: 'optimality',
-                                        name: 'optimalityGap',
-                                        value: 0.03,
-                                    }]
-                                }, {
-                                    xtype: 'button',
-                                    text: 'Run',
-                                    id: 'b_run_model',
-                                    // handler: runModel,
-                                    handler: function() {
-                                        runModel();
-                                    },
-                                }
-                            ]
-                        }
-                    ]
-                }, {
-                    // main center panel
-                    xtype: 'panel',
-                    itemId: 'centerregion',
-                    region: 'center',
-                    bodyPadding: 40,
-                    items: [
-                        {
-                            // center panel #1 -> google map + display modes
-                            xtype: 'panel',
-                            itemId: 'centerregion',
-                            region: 'center',
-                            bodyPadding: 5,
-                            frame: 'true',
-                            height: 550,
-							layout:'fit',
-                            items: [{
-                                xtype: 'gmappanel',
-								gmapType: 'map',
-								id: 'googleMap',
-								center: {
-									lat: 24.7,
-									lng: 46.7,
-								},
-								// mapConfOpts: ['enableScrollWheelZoom','enableDoubleClickZoom','enableDragging'],
-								mapOptions: {
-									zoom: 5,
-									mapTypeId: google.maps.MapTypeId.ROADMAP,
-								}
-                        	}]
-                        }, {
-                            html: ' <h4 style="color:gray;margin-bottom:0px; margin-top:10px;font-size:20px;">Display Modes</h4>',
-                        }, {
-                            xtype: 'checkboxgroup',
-                            id: 'cb_display_group',
-                            name: 'cb_display_group',
-                            columns: 5,
-                            vertical: false,
-                            items: [{
-                                    boxLabel: 'All ',
-                                    id: 'cb_all',
-                                    name: 'cb_display',
-                                    inputValue: '1',
-                                    checked: true,
-                                    handler: function () {
-                                        if ( this.getValue() ){
-                                            Ext.getCmp('cb_pipeline').setValue(false);
-                                            Ext.getCmp('cb_city').setValue(false);
-                                            Ext.getCmp('cb_power').setValue(false);
-                                            Ext.getCmp('cb_desal').setValue(false);
-                                        }
-
-                                        var h_map = Ext.getCmp('googleMap').gmap;
-                                        plotMap(h_map,current_network);
-                                    }
-                                }, {
-                                    boxLabel: 'Pipelines',
-                                    id: 'cb_pipeline',
-                                    name: 'cb_display',
-                                    inputValue: '2',
-                                    handler: fn_display_mode_changed,
-                                }, {
-                                    boxLabel: 'City',
-                                    id: 'cb_city',
-                                    name: 'cb_display',
-                                    inputValue: '3',
-                                    handler: fn_display_mode_changed,
-                                }, {
-                                    boxLabel: 'Power Plant',
-                                    id: 'cb_power',
-                                    name: 'cb_display',
-                                    inputValue: '4',
-                                    handler: fn_display_mode_changed,
-                                }, {
-                                    boxLabel: 'Desalination Plant',
-                                    id: 'cb_desal',
-                                    name: 'cb_display',
-                                    inputValue: '5',
-                                    handler: fn_display_mode_changed,
-                                }, {
-                                    boxLabel: 'Legend',
-                                    id: 'cb_legend',
-                                    name: 'cb_display',
-                                    inputValue: '6',
-                                    checked: true,
-                                    handler: function () {
-                                        if ( this.getValue() ) {
-                                            // Show legend
-                                            Ext.get('legend').setStyle('display', 'block');
-                                        } else {
-                                            // Hide legend
-                                            Ext.get('legend').setStyle('display','none');
-                                        }
-                                    }
-                                },
-                            ],
-                        }
-                    ]
-                }, {
-                    // main East panel
-                    xtype: 'panel',
-                    region: 'east',
-                    width: 300,
-                    height: 50,
-                    title: 'Results',
-                    split: false,
-                    items: [
-                        {
-                            region: 'north',
-                            height: 10,
-                        }, {
-                            // east panel #1 shows results
-                            xtype: 'panel',
-                            region: 'east',
-                            width: 300,
-                            height: 540,
-                            split: false,
-                            bodyPadding: 10,
-                            frame: true,
-                            items: [
-								{
-                                    defaultType: 'textfield',
-                                    width: 300,
-                                    items: [{
-                                            fieldLabel: 'Optimization Terminated due to',
-                                            id: 'OptiTermDueTo',
-                                            name: 'OptiTermDueTo',
-                                            readOnly: true,
-                                            value: 'Not started',
-                                        }, {
-                                            fieldLabel: 'Total Cost (MUSD/year)',
-                                            id: 'kpi_cost',
-                                            name: 'TotalCost',
-                                            readOnly: true,
-                                            value: '0.0',
-                                        }, {
-                                            fieldLabel: 'Total CAPEX (MUSD/year)',
-                                            id: 'kpi_CAPEX',
-                                            name: 'TotalCAPEX',
-                                            readOnly: true,
-                                            value: '0.0',
-                                        }, {
-                                            fieldLabel: 'Total OPEX (MUSD/year)',
-                                            id: 'kpi_OPEX',
-                                            name: 'TotalOPEX',
-                                            readOnly: true,
-                                            value: '0.0',
-                                        }, {
-                                            fieldLabel: 'Total CO2 Emission (MMT/year)',
-                                            id: 'kpi_CO2',
-                                            name: 'TotalCO2',
-                                            readOnly: true,
-                                            value: '0.0',
-                                        }, {
-                                            fieldLabel: 'Total Potable Water Production (MCM/year)',
-                                            id: 'kpi_potable',
-                                            name: 'TotalPotableWater',
-                                            readOnly: true,
-                                            value: '0.0',
-                                        }, {
-                                            fieldLabel: 'Total Water loss in Pipeline (%)',
-                                            id: 'kpi_totalLossWater',
-                                            name: 'TotalWaterLoss',
-                                            readOnly: true,
-                                            value: '0.0',
-                                        }, {
-                                            fieldLabel: 'Total Electricity Generation (GWh/year)',
-                                            id: 'kpi_electricity',
-                                            name: 'TotalElectricity',
-                                            readOnly: true,
-                                            value: '0.0',
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
+            items: [{ // main north panel
+                region: 'north',
+                html: '<h1>KSA Water/Energy INFINT Model 1.0</h1>',
+                style: {
+                    'text-align': 'center',
+                    marginBottom: '10px',
                 }
-            ]
+            }, { // main west panel
+                region: 'west',
+                width: 300,
+                bodyPadding: 5,
+                items: [{
+                    title: 'User info',
+                    split: true,
+                    bodyPadding: 5,
+                    frame: true,
+                    items: [{
+                        defaultType: 'textfield',
+                        items: [{
+                            fieldLabel: 'User ID',
+                            id: 'userID',
+                            name: 'userID',
+                            value: 1,
+                            readOnly: true,
+                            width: '100%',
+                        }, {
+                            fieldLabel: 'Simulation ID',
+                            id: 'simID',
+                            name: 'simID',
+                            value: 123,
+                            readOnly: true,
+                            width: '100%',
+                        }, {
+                            fieldLabel: 'Session',
+                            id: 'sessionID',
+                            name: 'sessionID',
+                            value: 123,
+                            readOnly: true,
+                            width: '100%',
+                        }]
+                    }]
+                }, {
+                    // west panel #1 for loading the database
+                    region: 'west',
+                    title: 'Step 1: Database ',
+                    split: true,
+                    bodyPadding: 5,
+                    frame: true,
+                    items: [{
+                        xtype      : 'fieldcontainer',
+                        fieldLabel : 'Use database',
+                        defaultType: 'radiofield',
+                        layout: 'hbox',
+                        items: [{
+                            boxLabel  : 'Default',
+                            name      : 'db_src',
+                            inputValue: 'src_default',
+                            id        : 'radio1',
+                            checked: true,
+                        }, {
+                            boxLabel  : 'New',
+		                    name      : 'db_src',
+		                    inputValue: 'src_new_file',
+		                    id        : 'radio2'
+		                }]
+                    }, {
+                        xtype: 'filefield',
+                        width: '100%',
+                        name: 'file',
+                        msgTarget: 'side',
+                        allowBlank: false,
+                        anchor: '100%',
+                        buttonText: 'Select File',
+                        disabled: true,
+                    }, {
+                        xtype: 'button',
+                        text: 'Upload',
+                        id: 'b_upload_file',
+                        disabled: true,
+                        handler: function() {
+                            bt_uploadHandler();
+                        },
+                    }]
+                }, {
+                    // west panel #2 for inputs
+                    region: 'west',
+                    title: 'Step 2: Optimization ',
+                    split: true,
+                    bodyPadding: 5,
+                    frame: true,
+                    items: [{
+                        html: '<p>Optimize Network Flow under:</p>',
+                    }, {
+                        // TODO:
+                        //      Append the current slider value
+                        //      at the end of the label.
+                        //      http://jsfiddle.net/molecule/WdjZn/
+                        //      http://www.sencha.com/forum/showthread.php?184084-Display-slider-value
+                        xtype: 'sliderfield',
+                        fieldLabel: 'Cost (%)',
+                        // labelStyle: 'color:gray; margin-bottom:0px;',
+                        // afterLabelTextTpl: this.getValue()+'%',
+                        id: 'cost',
+                        width: '100%',
+                        value: 100,
+                        minValue: 0,
+                        maxValue: 100,
+                    }, {
+                        xtype: 'sliderfield',
+                        fieldLabel: 'CO2 (%)',
+                        id: 'co2',
+                        width: '100%',
+                        value: 0,
+                        minValue: 0,
+                        maxValue: 100,
+                    }, {
+                        defaultType: 'textfield',
+                        items: [{
+                            fieldLabel: 'Time Limit (Seconds)',
+                            id: 'timelimit',
+                            name: 'TimeLimit',
+                            value: 30,
+                            width: '100%',
+                        }, {
+                            fieldLabel: 'Optimality Gap',
+                            id: 'optimality',
+                            name: 'optimalityGap',
+                            value: 0.03,
+                            width: '100%',
+                        }]
+                    }, {
+                        xtype: 'button',
+                        text: 'Run',
+                        id: 'b_run_model',
+                        handler: function() {
+                            runModel();
+                        },
+                    }]
+                }]
+            }, { // main center panel
+                itemId: 'centerregion',
+                region: 'center',
+    			// layout:'fit',
+                // width: '100%',
+                bodyPadding: 5,
+                items: [{ // center panel #1 -> google map + display modes
+                    itemId: 'centerregion',
+                    // region: 'center',
+                    // bodyPadding: 5,
+                    frame: 'true',
+                    height: 550,
+                    layout:'fit',
+                    items: [{
+                        xtype: 'gmappanel',
+						gmapType: 'map',
+						id: 'googleMap',
+						center: {
+							lat: 24.7,
+							lng: 46.7,
+						},
+						// mapConfOpts: ['enableScrollWheelZoom','enableDoubleClickZoom','enableDragging'],
+						mapOptions: {
+							zoom: 5,
+							mapTypeId: google.maps.MapTypeId.ROADMAP,
+                            styles: [{
+                                "stylers": [
+                                  { "visibility": "off" }
+                                ]
+                              },{
+                                "featureType": "administrative.country",
+                                "elementType": "geometry.stroke",
+                                "stylers": [
+                                  { "visibility": "on" }
+                                ]
+                              },{
+                                "featureType": "administrative.country",
+                                "elementType": "labels.text",
+                                "stylers": [
+                                  { "visibility": "on" }
+                                ]
+                              },{
+                                "featureType": "water",
+                                "elementType": "geometry.fill",
+                                "stylers": [
+                                  { "visibility": "on" }
+                                ]
+                              },{
+                                "featureType": "administrative.locality",
+                                "elementType": "labels.icon",
+                                "stylers": [
+                                  { "color": "#808080" },
+                                  { "visibility": "simplified" }
+                                ]
+                              },{
+                                "featureType": "administrative.locality",
+                                "elementType": "labels.text",
+                                "stylers": [
+                                  { "visibility": "on" }
+                                ]
+                              },{
+                            }]
+						}
+                	}]
+                }, {
+                    bodyPadding: 5,
+                    items: [{
+                        xtype: 'checkboxgroup',
+                        fieldLabel: 'Display Modes',
+                        id: 'cb_display_group',
+                        name: 'cb_display_group',
+                        columns: 5,
+                        bodyPadding: 5,
+                        // vertical: false,
+                        items: [{
+                            boxLabel: 'All ',
+                            id: 'cb_all',
+                            name: 'cb_display',
+                            inputValue: '1',
+                            checked: true,
+                            handler: function () {
+                                if ( this.getValue() ){
+                                    Ext.getCmp('cb_pipeline').setValue(false);
+                                    Ext.getCmp('cb_city').setValue(false);
+                                    Ext.getCmp('cb_power').setValue(false);
+                                    Ext.getCmp('cb_desal').setValue(false);
+                                }
+
+                                var h_map = Ext.getCmp('googleMap').gmap;
+                                plotMap(h_map,current_network);
+                            }
+                        }, {
+                            boxLabel: 'Pipelines',
+                            id: 'cb_pipeline',
+                            name: 'cb_display',
+                            inputValue: '2',
+                            handler: fn_display_mode_changed,
+                        }, {
+                            boxLabel: 'City',
+                            id: 'cb_city',
+                            name: 'cb_display',
+                            inputValue: '3',
+                            handler: fn_display_mode_changed,
+                        }, {
+                            boxLabel: 'Power Plant',
+                            id: 'cb_power',
+                            name: 'cb_display',
+                            inputValue: '4',
+                            handler: fn_display_mode_changed,
+                        }, {
+                            boxLabel: 'Desalination Plant',
+                            id: 'cb_desal',
+                            name: 'cb_display',
+                            inputValue: '5',
+                            handler: fn_display_mode_changed,
+                        }, {
+                            boxLabel: 'Legend',
+                            id: 'cb_legend',
+                            name: 'cb_display',
+                            inputValue: '6',
+                            checked: true,
+                            handler: function () {
+                                if ( this.getValue() ) {
+                                    // Show legend
+                                    Ext.get('legend').setStyle('display', 'block');
+                                } else {
+                                    // Hide legend
+                                    Ext.get('legend').setStyle('display','none');
+                                }
+                            }
+                        }],
+                    }],
+                }]
+            }, { // main East panel
+                region: 'east',
+                width: 300,
+                // split: false,
+                bodyPadding: 5,
+                items: [{
+                    // east panel #1 shows results
+                    // region: 'east',
+                    title: 'Results',
+                    // width: 250,
+                    // width: '100%',
+                    split: false,
+                    bodyPadding: 5,
+                    frame: true,
+                    items: [{
+                        defaultType: 'textfield',
+                        // width: '100%',
+                        items: [{
+                            fieldLabel: 'Optimization terminated due to',
+                            id: 'OptiTermDueTo',
+                            name: 'OptiTermDueTo',
+                            readOnly: true,
+                            value: 'Not started',
+                            width: '100%',
+                        }, {
+                            fieldLabel: 'Total Cost (MUSD/year)',
+                            id: 'kpi_cost',
+                            name: 'TotalCost',
+                            readOnly: true,
+                            value: '0.0',
+                            width: '100%',
+                        }, {
+                            fieldLabel: 'Total CAPEX (MUSD/year)',
+                            id: 'kpi_CAPEX',
+                            name: 'TotalCAPEX',
+                            readOnly: true,
+                            value: '0.0',
+                            width: '100%',
+                        }, {
+                            fieldLabel: 'Total OPEX (MUSD/year)',
+                            id: 'kpi_OPEX',
+                            name: 'TotalOPEX',
+                            readOnly: true,
+                            value: '0.0',
+                            width: '100%',
+                        }, {
+                            fieldLabel: 'Total CO2 Emission (MMT/year)',
+                            id: 'kpi_CO2',
+                            name: 'TotalCO2',
+                            readOnly: true,
+                            value: '0.0',
+                            width: '100%',
+                        }, {
+                            fieldLabel: 'Total Potable Water Production (MCM/year)',
+                            id: 'kpi_potable',
+                            name: 'TotalPotableWater',
+                            readOnly: true,
+                            value: '0.0',
+                            width: '100%',
+                        }, {
+                            fieldLabel: 'Total Water loss in Pipeline (%)',
+                            id: 'kpi_totalLossWater',
+                            name: 'TotalWaterLoss',
+                            readOnly: true,
+                            value: '0.0',
+                            width: '100%',
+                        }, {
+                            fieldLabel: 'Total Electricity Generation (GWh/year)',
+                            id: 'kpi_electricity',
+                            name: 'TotalElectricity',
+                            readOnly: true,
+                            value: '0.0',
+                            width: '100%',
+                        }]
+                    }]
+                }]
+            }]
         }); // childPanel1
 
         Ext.create('Ext.container.Viewport', {
@@ -425,7 +436,8 @@ Ext.application({
 		var server_addr = domain_name + ':8080';
 
 		var showInitialNetwork = function (h_map) {
-		    var resource = 'http://' + server_addr + '/test';
+            // var resource = 'http://' + server_addr + '/test';
+		    var resource = 'http://' + server_addr + '/initial_network';
 
             // Request user data through an XHR.
             Ext.Ajax.request({
@@ -527,22 +539,38 @@ Ext.application({
 			// Edges
 			'pipeline': {
 				'name' : 'Pipeline (water/energy)',
-				'existing':{
-					path: [], // Do not change
-					geodesic: true, // Do not change
-					strokeColor: '#4D4D4D',
-					strokeOpacity: 1.0,
-					strokeWeight: 2,
-					'name': 'Existing pipeline'
-				},
-				'candid':{
-					path: [], // Do not change
-					geodesic: true, // Do not change
-					strokeColor: '#FF0000',
-					strokeOpacity: 1.0,
-					strokeWeight: 2,
+                'existing':{
+                    path: [], // Do not change
+                    geodesic: true, // Do not change
+                    strokeColor: '#4D4D4D',
+                    strokeOpacity: 1.0,
+                    strokeWeight: 2,
+                    'name': 'Existing pipeline'
+                },
+                'candid':{
+                // 'potential':{
+                    path: [], // Do not change
+                    geodesic: true, // Do not change
+                    strokeOpacity: 0,
+                    icons: [{ // Dashed line
+                        icon: { // Define a symbol using SVG path notation, with an opacity of 1.
+                            path: 'M 0,-1 0,1',
+                            strokeOpacity: 1,
+                            scale: 1,
+                        },
+                        offset: '0',
+                        repeat: '10px'
+                    }],
 					'name': 'Candidate pipeline'
-				}
+                },
+                // 'candid':{
+                //  path: [], // Do not change
+                //  geodesic: true, // Do not change
+                //  strokeColor: '#FF0000',
+                //  strokeOpacity: 1.0,
+                //  strokeWeight: 2,
+                //  'name': 'Candidate pipeline'
+				// }
 			},
 			// Nodes
 			'desal': {
@@ -578,8 +606,6 @@ Ext.application({
 		// Returns an object with the display check boxes states.
 		var getSelectedCheckboxes = function (id) {
 			var res = {};
-			// var selected = $("#"+id+" :checkbox");
-
             var selected = Ext.getCmp('cb_display_group').getChecked();
 
 			for (var i = 0; i < selected.length; i++) {
@@ -602,14 +628,14 @@ Ext.application({
 					continue;
 
 				// Get an options prototype:
-				opts = map_design_format[ data[i][0] ][ data[i][1] ];
-				line.push(new google.maps.LatLng(
-					parseFloat(data[i][2]),
-					parseFloat(data[i][3])) );
-	        	line.push(new google.maps.LatLng(
-	        		parseFloat(data[i][4]),
-	        		parseFloat(data[i][5])) );
-	        	opts.path = line; // Set the options variable field.
+                opts = map_design_format[ data[i][0] ][ data[i][1] ];
+                line.push(new google.maps.LatLng(
+                    parseFloat(data[i][2]),
+                    parseFloat(data[i][3])) );
+                line.push(new google.maps.LatLng(
+                    parseFloat(data[i][4]),
+                    parseFloat(data[i][5])) );
+                opts.path = line; // Set the options variable field.
 
 	        	// Create and draw the line
 				pipe = new google.maps.Polyline( opts );
@@ -620,7 +646,6 @@ Ext.application({
 			}
 		};
 
-        // var createNodes = function (h_map,data) {
 		var createNodes = function (data) {
 			var selected = getSelectedCheckboxes( "output_selector" );
 
@@ -687,6 +712,10 @@ Ext.application({
 
         // Generate a unique Simulation ID
         generateSimID();
+
+        // TODO:
+        //      Generate a new Sim ID when the current simulation ends OK.
+
 
         // load initial state or default data
         var h_map = Ext.getCmp('googleMap').gmap;
