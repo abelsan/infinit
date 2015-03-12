@@ -210,13 +210,9 @@ Ext.application({
             }, { // main center panel
                 itemId: 'centerregion',
                 region: 'center',
-    			// layout:'fit',
-                // width: '100%',
                 bodyPadding: 5,
                 items: [{ // center panel #1 -> google map + display modes
                     itemId: 'centerregion',
-                    // region: 'center',
-                    // bodyPadding: 5,
                     frame: 'true',
                     height: 550,
                     layout:'fit',
@@ -232,7 +228,7 @@ Ext.application({
 						mapOptions: {
 							zoom: 5,
 							mapTypeId: google.maps.MapTypeId.ROADMAP,
-                            styles: [{
+                            styles: [{ // Wizard: http://gmaps-samples-v3.googlecode.com/svn/trunk/styledmaps/wizard/index.html
                                 "stylers": [
                                   { "visibility": "off" }
                                 ]
@@ -280,7 +276,6 @@ Ext.application({
                         name: 'cb_display_group',
                         columns: 5,
                         bodyPadding: 5,
-                        // vertical: false,
                         items: [{
                             boxLabel: 'All ',
                             id: 'cb_all',
@@ -329,11 +324,9 @@ Ext.application({
                             inputValue: '6',
                             checked: true,
                             handler: function () {
-                                if ( this.getValue() ) {
-                                    // Show legend
+                                if ( this.getValue() ) { // Show legend
                                     Ext.get('legend').setStyle('display', 'block');
-                                } else {
-                                    // Hide legend
+                                } else { // Hide legend
                                     Ext.get('legend').setStyle('display','none');
                                 }
                             }
@@ -343,20 +336,15 @@ Ext.application({
             }, { // main East panel
                 region: 'east',
                 width: 300,
-                // split: false,
                 bodyPadding: 5,
                 items: [{
                     // east panel #1 shows results
-                    // region: 'east',
                     title: 'Results',
-                    // width: 250,
-                    // width: '100%',
                     split: false,
                     bodyPadding: 5,
                     frame: true,
                     items: [{
                         defaultType: 'textfield',
-                        // width: '100%',
                         items: [{
                             fieldLabel: 'Optimization terminated due to',
                             id: 'OptiTermDueTo',
@@ -418,6 +406,11 @@ Ext.application({
                 }]
             }]
         }); // childPanel1
+
+
+        // New pareto graph
+        //  xlabel: 'Total Cost (CAPEX+OPEX) [BUSD/year]'
+        //  ylabel: 'Total CO2 Emission [MMT/year]'
 
         Ext.create('Ext.container.Viewport', {
             items: [childPanel1]
@@ -510,48 +503,79 @@ Ext.application({
 
 		var insertLegend = function (h_map) {
 			var legend,
-				content = [];
+				content = [],
+                elem,
+                radius;
 
 			// Create the legend and display on the map
 			legend = document.createElement('div');
 			legend.id = 'legend';
 			content.push('<h3>Legend</h3>');
 
-			content.push("<p><img src='"+map_design_format.city.with_wastewater_treatment.image+"'>"+ map_design_format.city.with_wastewater_treatment.name + "</p>");
-			content.push("<p><img src='"+map_design_format.city.without_wastewater_treatment.image+"'>"+ map_design_format.city.without_wastewater_treatment.name + "</p>");
 
-			content.push("<p><img src='"+map_design_format.desal.existing.image+"'>"+ map_design_format.desal.existing.name + "</p>");
-			content.push("<p><img src='"+map_design_format.desal.candid.image+"'>"+ map_design_format.desal.candid.name + "</p>");
+            // content.push("<p><img src='"+map_design_format.city.with_wastewater_treatment.image+"'>"+ map_design_format.city.with_wastewater_treatment.name + "</p>");
+            // content.push("<p><img src='"+map_design_format.city.without_wastewater_treatment.image+"'>"+ map_design_format.city.without_wastewater_treatment.name + "</p>");
+            elem = map_design_format.city.with_wastewater_treatment;
+            radius = elem.icon.scale;
+            content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShort + "</p>");
+            elem = map_design_format.city.without_wastewater_treatment;
+            radius = elem.icon.scale;
+            content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShort + "</p>");
 
-			content.push("<p><span style='color:"+map_design_format.pipeline.existing.strokeColor+"'>"+ map_design_format.pipeline.existing.name + "</span></p>");
-			content.push("<p><span style='color:"+map_design_format.pipeline.candid.strokeColor+"'>"+ map_design_format.pipeline.candid.name + "</span></p>");
+            elem = map_design_format.desal.existing;
+            radius = elem.icon.scale;
+            // content.push("<p><img src='"+map_design_format.desal.existing.image+"'>"+ map_design_format.desal.existing.name + "</p>");
+            // content.push("<p><img src='"+map_design_format.desal.candid.image+"'>"+ map_design_format.desal.candid.name + "</p>");
+            content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShort + "</p>");
+            elem = map_design_format.desal.candid;
+            radius = elem.icon.scale;
+            content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShort + "</p>");
 
-			content.push("<p><img src='"+map_design_format.power.power.image+"'>"+ map_design_format.power.name + "</p>");
+            // content.push("<p><img src='"+map_design_format.power.power.image+"'>"+ map_design_format.power.name + "</p>");
+            elem = map_design_format.power.power;
+            radius = elem.icon.scale;
+            content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShort + "</p>");
 
-			legend.innerHTML = content.join('');
-			legend.index = 1;
-			h_map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(legend);
-		};
+            // content.push("<p><span style='color:"+map_design_format.pipeline.existing.strokeColor+"'>"+ map_design_format.pipeline.existing.name + "</span></p>");
+            // content.push("<p><span style='color:"+map_design_format.pipeline.candid.strokeColor+"'>"+ map_design_format.pipeline.candid.name + "</span></p>");
+            elem = map_design_format.pipeline.existing;
+            content.push("<p><svg height='5' width='10'><rect height='5' width='10' fill='"+elem.strokeColor+"' /></svg>  "+ elem.nameShort + "</p>");
+            elem = map_design_format.pipeline.candid;
+            content.push("<p><svg height='5' width='15'>"+
+                "<rect x='0' y='0' height='5' width='5' fill='"+elem.strokeColor+"' />"+
+                "<rect x='5' y='0' height='5' width='5' fill='#FFFFFF' />"+
+                "<rect x='10' y='0' height='5' width='5' fill='"+elem.strokeColor+"' />"+
+                "</svg>  "+ elem.nameShort + "</p>");
 
 
-		// Graphic design specification for the map
-		var map_design_format = {
-			// Edges
-			'pipeline': {
-				'name' : 'Pipeline (water/energy)',
+            legend.innerHTML = content.join('');
+            legend.index = 1;
+            h_map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(legend);
+        };
+
+
+        // Graphic design specification for the map
+        var map_design_format = {
+            // Edges
+            'pipeline': {
+                'name' : 'Pipeline (water/energy)',
                 'existing':{
+                    'name': 'Existing pipeline',
+    				'nameShort' : 'Water pipeline (existing)',
                     path: [], // Do not change
                     geodesic: true, // Do not change
-                    strokeColor: '#4D4D4D',
+                    strokeColor: '#000000',
                     strokeOpacity: 1.0,
                     strokeWeight: 2,
-                    'name': 'Existing pipeline'
                 },
                 'candid':{
-                // 'potential':{
+                    'name': 'Potential connection',
+                    'nameShort': 'Potential connection',
                     path: [], // Do not change
                     geodesic: true, // Do not change
                     strokeOpacity: 0,
+                    strokeColor: '#4D4D4D',
+                    strokeWeight: 2,
                     icons: [{ // Dashed line
                         icon: { // Define a symbol using SVG path notation, with an opacity of 1.
                             path: 'M 0,-1 0,1',
@@ -561,7 +585,6 @@ Ext.application({
                         offset: '0',
                         repeat: '10px'
                     }],
-					'name': 'Candidate pipeline'
                 },
                 // 'candid':{
                 //  path: [], // Do not change
@@ -570,40 +593,96 @@ Ext.application({
                 //  strokeOpacity: 1.0,
                 //  strokeWeight: 2,
                 //  'name': 'Candidate pipeline'
-				// }
-			},
-			// Nodes
-			'desal': {
-				'name' : 'Desalination plant',
-				'existing':{
-					'image':'images/drinkingwater_green.png',
-					'name': 'Desalination plant existing'
-				},
-				'candid':{
-					'image':'images/drinkingwater_red.png',
-					'name': 'Desalination plant candidate'
-				}
-			},
-			'power': {
-				'name' : 'Power plant',
-				'power': {
-					'image':'images/solarenergy_blue.png'
-				}
-			},
-			'city': {
-				'name' : 'City',
-				'with_wastewater_treatment':{
-					'image':'images/bigcity.png',
-					'name': 'City with wastewater treatment'
-				},
-				'without_wastewater_treatment':{
-					'image':'images/ghosttown.png',
-					'name': 'City without wastewater treatment'
-				}
-			}
-		};
+                // }
+            },
+            // Nodes
+            'desal': {
+                'name' : 'Desalination plant',
+                'existing':{
+                    'name': 'Desalination plant existing',
+                    'nameShort': 'Desal plant (existing)',
+                    'image':'images/drinkingwater_green.png',
+                    // path: [], // Do not change
+                    geodesic: true, // Do not change
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        strokeColor: '#0000FF',
+                        strokeOpacity: 0.5,
+                        strokeWeight: 1,
+                        fillColor: '#0000FF',
+                        fillOpacity: 0.35,
+                        scale: 5,
+                    },
+                },
+                'candid':{
+                    'name': 'Desalination plant candidate',
+                    'nameShort': 'Desal plant (planned)',
+                    'image':'images/drinkingwater_red.png',
+                    geodesic: true, // Do not change
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        strokeColor: '#00FF00',
+                        strokeOpacity: 0.5,
+                        strokeWeight: 1,
+                        fillColor: '#00FF00',
+                        fillOpacity: 0.35,
+                        scale: 5,
+                    },
+                }  // 811-367-6673
+            },
+            'power': {
+                'name' : 'Power plant',
+                'power': {
+                    'nameShort': 'Power plant (existing)',
+                    'image':'images/solarenergy_blue.png',
+                    geodesic: true, // Do not change
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        fillOpacity: 0.35,
+                        fillColor: '#FF0000',
+                        strokeColor: '#FF0000',
+                        strokeOpacity: 0.5,
+                        strokeWeight: 1,
+                        scale: 5,
+                    },
+                }
+            },
+            'city': {
+                'name' : 'City',
+                'with_wastewater_treatment':{
+                    'name': 'City with wastewater treatment',
+                    'nameShort': 'City w/ WWT',
+                    'image':'images/bigcity.png',
+                    geodesic: true, // Do not change
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        strokeColor: '#00FFFF',
+                        strokeOpacity: 0.5,
+                        strokeWeight: 1,
+                        fillColor: '#00FFFF',
+                        fillOpacity: 0.35,
+                        scale: 5,
+                    },
+                },
+                'without_wastewater_treatment':{
+                    'name': 'City without wastewater treatment',
+                    'nameShort': 'City w/o WWT',
+                    'image':'images/ghosttown.png',
+                    geodesic: true, // Do not change
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        strokeColor: '#FF00FF',
+                        strokeOpacity: 0.5,
+                        strokeWeight: 1,
+                        fillColor: '#FF00FF',
+                        fillOpacity: 0.35,
+                        scale: 5,
+                    },
+                }
+            }
+        };
 
-		// Returns an object with the display check boxes states.
+        // Returns an object with the display check boxes states.
 		var getSelectedCheckboxes = function (id) {
 			var res = {};
             var selected = Ext.getCmp('cb_display_group').getChecked();
@@ -648,21 +727,36 @@ Ext.application({
 
 		var createNodes = function (data) {
 			var selected = getSelectedCheckboxes( "output_selector" );
+            var node;
+            var opts;
 
 			for (var i = data.length - 1; i >= 0; i--) {
 				if ( !selected.all && !selected[ data[i][0] ] )
 					continue;
 
+                // Get an options prototype:
+                opts = map_design_format[ data[i][0] ][ data[i][1] ];
+
 				var pos = new google.maps.LatLng(
 					parseFloat(data[i][2]),
 					parseFloat(data[i][3]) );
 
-				var marker = new google.maps.Marker({
-					position: pos,
-					icon: map_design_format[ data[i][0] ][ data[i][1] ].image
-				});
+                // var marker = new google.maps.Marker({
+                //  position: pos,
+                //  icon: map_design_format[ data[i][0] ][ data[i][1] ].image
+                // });
 
-				markers.push(marker);
+                opts.position = pos;
+                // icon: map_design_format[ data[i][0] ][ data[i][1] ].image
+
+                // opts.center = pos;
+                opts.radius = 50000;
+
+                // Add the circle for this city to the map.
+                // node = new google.maps.Circle( opts );
+				node = new google.maps.Marker( opts );
+
+				markers.push( node );
 			}
 		};
 

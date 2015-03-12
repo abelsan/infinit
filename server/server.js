@@ -173,7 +173,6 @@ app.get('/initial_network', function(req, res) {
 	  					'nodes': doc.nodes,
 	  					'edges': doc.edges,
 	  				},
-	  				// 'result_network':doc,
 	  				'files':"none" ,
 	  				'stdout':"Nothing" ,
 	  				'stderr':"Nothing"
