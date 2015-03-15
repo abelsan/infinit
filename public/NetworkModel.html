@@ -5,6 +5,7 @@
 		<script type="text/javascript" src="js/ext/build/ext-all.js"></script>
         <link rel="stylesheet" type="text/css" href="js/ext/packages/ext-theme-neptune/build/resources/ext-theme-neptune-all.css">
 		<link rel="stylesheet" type="text/css" href="css/style.css">
+        <link rel="stylesheet" type="text/css" href="js/ext/src/ux/statusbar/css/statusbar.css" />
 		<script type="text/javascript" src="js/ext/packages/ext-theme-neptune/build/ext-theme-neptune.js"></script>
 		<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=true"></script>
         <script src="js/UUID.js/dist/uuid.core.js">// If you only need UUID.generate() method </script>
@@ -17,8 +18,8 @@ var timeout_tol = 10000; // {ms} XHR calls timeout tolerance.
 Ext.Loader.setConfig({enabled: true});
 Ext.Loader.setPath('Ext.ux', 'js/ext/src/ux');
 Ext.require([
-    // 'Ext.window.*',
-    'Ext.ux.GMapPanel' // Alternative: https://gist.github.com/minibikini/1160378
+    'Ext.ux.GMapPanel', // Alternative: https://gist.github.com/minibikini/1160378
+    'Ext.ux.statusbar.StatusBar',
 ]);
 
 Ext.application({
@@ -27,7 +28,6 @@ Ext.application({
     launch: function () {
 
         var runModel;
-        // var showCurrentNetwork; ////////////
         var initial_network;
         var current_network;
         var simulation_result;
@@ -170,19 +170,29 @@ Ext.application({
                         fieldLabel: 'Cost (%)',
                         // labelStyle: 'color:gray; margin-bottom:0px;',
                         // afterLabelTextTpl: this.getValue()+'%',
-                        id: 'cost',
+                        id: 's_cost',
                         width: '100%',
                         value: 100,
                         minValue: 0,
                         maxValue: 100,
+                        listeners: {
+                            change: function( slider, newValue, thumb, eOpts ) {
+                                Ext.getCmp('s_co2').setValue(100 - slider.getValue());
+                            },
+                        },
                     }, {
                         xtype: 'sliderfield',
                         fieldLabel: 'CO2 (%)',
-                        id: 'co2',
+                        id: 's_co2',
                         width: '100%',
                         value: 0,
                         minValue: 0,
                         maxValue: 100,
+                        listeners: {
+                            change: function( slider, newValue, thumb, eOpts ) {
+                                Ext.getCmp('s_cost').setValue(100 - slider.getValue());
+                            },
+                        },
                     }, {
                         defaultType: 'textfield',
                         items: [{
@@ -205,8 +215,19 @@ Ext.application({
                         handler: function() {
                             runModel();
                         },
-                    }]
-                }]
+                    }, {
+                        xtype: 'statusbar',
+                        id: 'sb_run_status',
+                        width: 220,
+                        statusAlign: 'right', // the magic config
+                        // defaults to use when the status is cleared:
+                        defaultText: 'Ready',
+                        defaultIconCls: 'default-icon',
+                        style: {
+                            display: 'inline-block',
+                        },
+                    }],
+                }],
             }, { // main center panel
                 itemId: 'centerregion',
                 region: 'center',
@@ -407,7 +428,6 @@ Ext.application({
             }]
         }); // childPanel1
 
-
         // New pareto graph
         //  xlabel: 'Total Cost (CAPEX+OPEX) [BUSD/year]'
         //  ylabel: 'Total CO2 Emission [MMT/year]'
@@ -429,8 +449,8 @@ Ext.application({
 		var server_addr = domain_name + ':8080';
 
 		var showInitialNetwork = function (h_map) {
-            // var resource = 'http://' + server_addr + '/test';
-		    var resource = 'http://' + server_addr + '/initial_network';
+		    var resource = 'http://' + server_addr + '/initial_network?'+
+                'inputfile=Default';
 
             // Request user data through an XHR.
             Ext.Ajax.request({
@@ -442,129 +462,156 @@ Ext.application({
                     current_network = initial_network;
 
     				plotMap(h_map,current_network);
-                    insertLegend(h_map);
+                    insertLegend(h_map,current_network);
                 },
                 failure: function(response, opts) {
                     console.log('server-side failure with status code ' + response.status);
                 }
             });
+        };
 
-            // var runModel = function() {
-            runModel = function() {
-                Ext.getCmp('b_run_model').setDisabled(true);
+        runModel = function() {
+            Ext.getCmp('b_run_model').setDisabled(true);
+            var sb = Ext.getCmp('sb_run_status');
+            sb.showBusy('Running simulation...'); // Set the status bar to show that something is processing:
 
-                var in_userID = Ext.getCmp('userID').getValue().trim();
-                var in_simID = Ext.getCmp('simID').getValue().trim();
-                var in_sessionID = Ext.getCmp('sessionID').getValue().trim();
-                var in_cost = Ext.getCmp('cost').getValue()/100;
-                var in_co2 = Ext.getCmp('co2').getValue()/100;
-                var in_timelimit = Ext.getCmp('timelimit').getValue().trim();
-                var in_optimality = Ext.getCmp('optimality').getValue().trim();
+            var in_userID = Ext.getCmp('userID').getValue().trim();
+            var in_simID = Ext.getCmp('simID').getValue().trim();
+            var in_sessionID = Ext.getCmp('sessionID').getValue().trim();
+            var in_cost = Ext.getCmp('s_cost').getValue()/100;
+            var in_co2 = Ext.getCmp('s_co2').getValue()/100;
+            var in_timelimit = Ext.getCmp('timelimit').getValue().trim();
+            var in_optimality = Ext.getCmp('optimality').getValue().trim();
 
-                var resource = 'http://' + server_addr + '/output?' +
-                            'userID=' + in_userID +
-                            '&simID=' + in_simID +
-                            '&sessionID=' + in_sessionID +
-                            '&cost=' + in_cost +
-                            '&co2=' + in_co2 +
-                            '&timelimit=' + in_timelimit +
-                            '&optimality=' + in_optimality;
+            var resource = 'http://' + server_addr + '/output?' +
+                        'userID=' + in_userID +
+                        '&simID=' + in_simID +
+                        '&sessionID=' + in_sessionID +
+                        '&cost=' + in_cost +
+                        '&co2=' + in_co2 +
+                        '&timelimit=' + in_timelimit +
+                        '&optimality=' + in_optimality;
+            // console.log('resource: ' + resource);
 
-                // console.log('resource: ' + resource);
+            var total_timeout = in_timelimit + timeout_tol;
 
-                var total_timeout = in_timelimit + timeout_tol;
+            // Request user data through an XHR.
+            Ext.Ajax.request({
+                url: resource,
+                timeout: total_timeout,
+                success: function(response, opts) {
+                    var obj = Ext.decode(response.responseText);
+                    // console.dir(obj);
 
-                // Request user data through an XHR.
-                Ext.Ajax.request({
-                    url: resource,
-                    timeout: total_timeout,
-                    success: function(response, opts) {
-                        var obj = Ext.decode(response.responseText);
-                        // console.dir(obj);
+                    // Backup results gotten from the server.
+                    current_network = obj;
 
-                        // Backup results gotten from the server.
-                        current_network = obj;
+                    plotMap(h_map,current_network);
+                    insertLegend(h_map,current_network);
+                    updateIndicators(current_network);
 
-                        plotMap(h_map,current_network);
-                        updateIndicators(current_network);
+                    console.log('stdout: '+ current_network.msg.stdout);
+                    console.log('stderr: '+ current_network.msg.stderr);
+                    // Done.
 
-                        console.log('stdout: '+ current_network.msg.stdout);
-                        console.log('stderr: '+ current_network.msg.stderr);
-                        // Done.
-                    },
-                    failure: function(response, opts) {
-                        console.log('server-side failure with status code: ' + statusText + ' (Code '+ response.status + ')');
-                        console.dir(response);
-                    }
-                });
-            };
+                    // Generate a new unique Simulation ID
+                    generateSimID();
+                    // and enable the run button
+                    Ext.getCmp('b_run_model').setDisabled(false);
+                    sb.setStatus({
+                        iconCls: 'x-status-valid',
+                        text: 'Finished',
+                    });
+                },
+                failure: function(response, opts) {
+                    console.log('server-side failure with status code: ' + statusText + ' (Code '+ response.status + ')');
+                    console.dir(response);
+                    // Generate a new unique Simulation ID
+                    generateSimID();
+                    // and enable the run button
+                    Ext.getCmp('b_run_model').setDisabled(false);
+                    sb.setStatus({
+                        iconCls: 'x-status-error',
+                        text: 'Finished with error',
+                    });
+                }
+            });
+        };
 
-		};
-
-		var insertLegend = function (h_map) {
-			var legend,
+        // var insertLegend = function (h_map) {
+        var insertLegend = function (h_map,current_network) {
+            var legend,
 				content = [],
                 elem,
-                radius;
+                radius = 5,
+                initial_network;
 
 			// Create the legend and display on the map
 			legend = document.createElement('div');
 			legend.id = 'legend';
 			content.push('<h3>Legend</h3>');
 
-
-            // content.push("<p><img src='"+map_design_format.city.with_wastewater_treatment.image+"'>"+ map_design_format.city.with_wastewater_treatment.name + "</p>");
-            // content.push("<p><img src='"+map_design_format.city.without_wastewater_treatment.image+"'>"+ map_design_format.city.without_wastewater_treatment.name + "</p>");
+            initial_network = ( current_network.msg.data.id !== undefined && current_network.msg.data.id === "initial_network" );
             elem = map_design_format.city.with_wastewater_treatment;
-            radius = elem.icon.scale;
             content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShort + "</p>");
             elem = map_design_format.city.without_wastewater_treatment;
-            radius = elem.icon.scale;
             content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShort + "</p>");
 
-            elem = map_design_format.desal.existing;
-            radius = elem.icon.scale;
-            // content.push("<p><img src='"+map_design_format.desal.existing.image+"'>"+ map_design_format.desal.existing.name + "</p>");
-            // content.push("<p><img src='"+map_design_format.desal.candid.image+"'>"+ map_design_format.desal.candid.name + "</p>");
-            content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShort + "</p>");
-            elem = map_design_format.desal.candid;
-            radius = elem.icon.scale;
-            content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShort + "</p>");
+            if ( initial_network ) {
+                elem = map_design_format.desal.existing;
+                content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShort + "</p>");
+                elem = map_design_format.desal.candid;
+                content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShort + "</p>");
+            } else {
+                elem = map_design_format.desal.existing;
+                content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShorter + "</p>");
+            }
 
-            // content.push("<p><img src='"+map_design_format.power.power.image+"'>"+ map_design_format.power.name + "</p>");
-            elem = map_design_format.power.power;
-            radius = elem.icon.scale;
-            content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShort + "</p>");
+            if ( initial_network ) {
+                elem = map_design_format.power.power;
+                content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShort + "</p>");
+            } else {
+                elem = map_design_format.power.power;
+                content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShorter + "</p>");
+            }
 
-            // content.push("<p><span style='color:"+map_design_format.pipeline.existing.strokeColor+"'>"+ map_design_format.pipeline.existing.name + "</span></p>");
-            // content.push("<p><span style='color:"+map_design_format.pipeline.candid.strokeColor+"'>"+ map_design_format.pipeline.candid.name + "</span></p>");
-            elem = map_design_format.pipeline.existing;
-            content.push("<p><svg height='5' width='10'><rect height='5' width='10' fill='"+elem.strokeColor+"' /></svg>  "+ elem.nameShort + "</p>");
-            elem = map_design_format.pipeline.candid;
-            content.push("<p><svg height='5' width='15'>"+
-                "<rect x='0' y='0' height='5' width='5' fill='"+elem.strokeColor+"' />"+
-                "<rect x='5' y='0' height='5' width='5' fill='#FFFFFF' />"+
-                "<rect x='10' y='0' height='5' width='5' fill='"+elem.strokeColor+"' />"+
-                "</svg>  "+ elem.nameShort + "</p>");
-
+            if ( initial_network ) {
+                elem = map_design_format.pipeline.existing;
+                content.push("<p><svg height='5' width='10'><rect height='5' width='10' fill='"+elem.strokeColor+"' /></svg>  "+ elem.name + "</p>");
+                elem = map_design_format.pipeline.candid;
+                content.push("<p><svg height='5' width='15'>"+
+                    "<rect x='0' y='0' height='5' width='5' fill='"+elem.strokeColor+"' />"+
+                    "<rect x='5' y='0' height='5' width='5' fill='#FFFFFF' />"+
+                    "<rect x='10' y='0' height='5' width='5' fill='"+elem.strokeColor+"' />"+
+                    "</svg>  "+ elem.nameShort + "</p>");
+            } else {
+                elem = map_design_format.pipeline.existing;
+                content.push("<p><svg height='5' width='10'><rect height='5' width='10' fill='"+elem.strokeColor+"' /></svg>  "+ elem.nameShort + "</p>");
+                elem = map_design_format.pipeline.new;
+                content.push("<p><svg height='5' width='10'><rect height='5' width='10' fill='"+elem.strokeColor+"' /></svg>  "+ elem.nameShort + "</p>");
+                elem = map_design_format.pipeline.unused;
+                content.push("<p><svg height='5' width='10'><rect height='5' width='10' fill='"+elem.strokeColor+"' /></svg>  "+ elem.nameShort + "</p>");
+            }
 
             legend.innerHTML = content.join('');
             legend.index = 1;
+            h_map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].pop();
             h_map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(legend);
         };
 
 
         // Graphic design specification for the map
+        var map_initial_node_scale = 1;
         var map_design_format = {
             // Edges
             'pipeline': {
                 'name' : 'Pipeline (water/energy)',
                 'existing':{
-                    'name': 'Existing pipeline',
-    				'nameShort' : 'Water pipeline (existing)',
+                    'name': 'Water pipeline (existing)',
+    				'nameShort' : 'Water pipeline (in use)',
                     path: [], // Do not change
                     geodesic: true, // Do not change
-                    strokeColor: '#000000',
+                    strokeColor: '#0000FF',
                     strokeOpacity: 1.0,
                     strokeWeight: 2,
                 },
@@ -574,7 +621,7 @@ Ext.application({
                     path: [], // Do not change
                     geodesic: true, // Do not change
                     strokeOpacity: 0,
-                    strokeColor: '#4D4D4D',
+                    strokeColor: '#000000',
                     strokeWeight: 2,
                     icons: [{ // Dashed line
                         icon: { // Define a symbol using SVG path notation, with an opacity of 1.
@@ -586,14 +633,24 @@ Ext.application({
                         repeat: '10px'
                     }],
                 },
-                // 'candid':{
-                //  path: [], // Do not change
-                //  geodesic: true, // Do not change
-                //  strokeColor: '#FF0000',
-                //  strokeOpacity: 1.0,
-                //  strokeWeight: 2,
-                //  'name': 'Candidate pipeline'
-                // }
+                'new':{
+                    'name': 'Water pipeline (new)',
+                    'nameShort': 'Water pipeline (new)',
+                    path: [], // Do not change
+                    geodesic: true, // Do not change
+                    strokeColor: '#00FFFF',
+                    strokeOpacity: 1.0,
+                    strokeWeight: 2,
+                },
+                'unused':{
+                    'name': 'Water pipeline (not in use)',
+                    'nameShort': 'Water pipeline (not in use)',
+                    path: [], // Do not change
+                    geodesic: true, // Do not change
+                    strokeColor: '#FF0000',
+                    strokeOpacity: 1.0,
+                    strokeWeight: 2,
+                },
             },
             // Nodes
             'desal': {
@@ -601,17 +658,17 @@ Ext.application({
                 'existing':{
                     'name': 'Desalination plant existing',
                     'nameShort': 'Desal plant (existing)',
+                    'nameShorter': 'Desal plant',
                     'image':'images/drinkingwater_green.png',
-                    // path: [], // Do not change
                     geodesic: true, // Do not change
                     icon: {
                         path: google.maps.SymbolPath.CIRCLE,
-                        strokeColor: '#0000FF',
-                        strokeOpacity: 0.5,
+                        strokeColor: '#000000',
+                        strokeOpacity: 1,
                         strokeWeight: 1,
                         fillColor: '#0000FF',
-                        fillOpacity: 0.35,
-                        scale: 5,
+                        fillOpacity: 1,
+                        scale: 1, // map_initial_node_scale,
                     },
                 },
                 'candid':{
@@ -621,29 +678,30 @@ Ext.application({
                     geodesic: true, // Do not change
                     icon: {
                         path: google.maps.SymbolPath.CIRCLE,
-                        strokeColor: '#00FF00',
-                        strokeOpacity: 0.5,
+                        strokeColor: '#000000',
+                        strokeOpacity: 1,
                         strokeWeight: 1,
-                        fillColor: '#00FF00',
-                        fillOpacity: 0.35,
-                        scale: 5,
+                        fillColor: '#bbbbbb',
+                        fillOpacity: 1,
+                        scale: 1, // map_initial_node_scale,
                     },
-                }  // 811-367-6673
+                }
             },
             'power': {
                 'name' : 'Power plant',
                 'power': {
                     'nameShort': 'Power plant (existing)',
+                    'nameShorter': 'Power plant',
                     'image':'images/solarenergy_blue.png',
                     geodesic: true, // Do not change
                     icon: {
                         path: google.maps.SymbolPath.CIRCLE,
-                        fillOpacity: 0.35,
-                        fillColor: '#FF0000',
-                        strokeColor: '#FF0000',
-                        strokeOpacity: 0.5,
+                        strokeColor: '#000000',
+                        strokeOpacity: 1,
                         strokeWeight: 1,
-                        scale: 5,
+                        fillOpacity: 1,
+                        fillColor: '#FFFF00',
+                        scale: 1, // map_initial_node_scale,
                     },
                 }
             },
@@ -656,12 +714,12 @@ Ext.application({
                     geodesic: true, // Do not change
                     icon: {
                         path: google.maps.SymbolPath.CIRCLE,
-                        strokeColor: '#00FFFF',
-                        strokeOpacity: 0.5,
+                        strokeColor: '#000000',
+                        strokeOpacity: 1,
                         strokeWeight: 1,
-                        fillColor: '#00FFFF',
-                        fillOpacity: 0.35,
-                        scale: 5,
+                        fillColor: '#00FF00',
+                        fillOpacity: 1,
+                        scale: 1, // map_initial_node_scale,
                     },
                 },
                 'without_wastewater_treatment':{
@@ -671,12 +729,12 @@ Ext.application({
                     geodesic: true, // Do not change
                     icon: {
                         path: google.maps.SymbolPath.CIRCLE,
-                        strokeColor: '#FF00FF',
-                        strokeOpacity: 0.5,
+                        strokeColor: '#000000',
+                        strokeOpacity: 1,
                         strokeWeight: 1,
-                        fillColor: '#FF00FF',
-                        fillOpacity: 0.35,
-                        scale: 5,
+                        fillColor: '#FF0000',
+                        fillOpacity: 1,
+                        scale: 1, // map_initial_node_scale,
                     },
                 }
             }
@@ -716,44 +774,40 @@ Ext.application({
                     parseFloat(data[i][5])) );
                 opts.path = line; // Set the options variable field.
 
-	        	// Create and draw the line
-				pipe = new google.maps.Polyline( opts );
+                // Create and draw the line
+                pipe = new google.maps.Polyline( opts );
 
-				markers.push(pipe);
+                markers.push(pipe);
 
-				line.length = 0;
-			}
-		};
+                line.length = 0;
+            }
+        };
 
-		var createNodes = function (data) {
-			var selected = getSelectedCheckboxes( "output_selector" );
+        var createNodes = function (data) {
+            var selected = getSelectedCheckboxes( "output_selector" );
             var node;
             var opts;
 
-			for (var i = data.length - 1; i >= 0; i--) {
-				if ( !selected.all && !selected[ data[i][0] ] )
-					continue;
+            for (var i = data.length - 1; i >= 0; i--) {
+                if ( !selected.all && !selected[ data[i][0] ] )
+                    continue;
 
                 // Get an options prototype:
+                opts = '';
                 opts = map_design_format[ data[i][0] ][ data[i][1] ];
 
-				var pos = new google.maps.LatLng(
-					parseFloat(data[i][2]),
-					parseFloat(data[i][3]) );
-
-                // var marker = new google.maps.Marker({
-                //  position: pos,
-                //  icon: map_design_format[ data[i][0] ][ data[i][1] ].image
-                // });
+                var pos = new google.maps.LatLng(
+                    parseFloat(data[i][2]),
+                    parseFloat(data[i][3]) );
 
                 opts.position = pos;
-                // icon: map_design_format[ data[i][0] ][ data[i][1] ].image
-
-                // opts.center = pos;
-                opts.radius = 50000;
+                // opts.radius = 10000;
+                opts.icon.scale = data[i][4]; // Set the options variable field.
+// console.log(opts.icon.scale);
+// if (opts.icon.scale >= 20)
+// console.log(data[i]);
 
                 // Add the circle for this city to the map.
-                // node = new google.maps.Circle( opts );
 				node = new google.maps.Marker( opts );
 
 				markers.push( node );
@@ -779,8 +833,8 @@ Ext.application({
         }
 
 		function plotMap(h_map,raw_data) {
-			var edges = raw_data.msg.result_network.edges;
-			var nodes = raw_data.msg.result_network.nodes;
+			var edges = raw_data.msg.data.outputs.edges;
+			var nodes = raw_data.msg.data.outputs.nodes;
 
             // Remove old markers and lines
             deleteMarkers();
@@ -794,14 +848,14 @@ Ext.application({
 		}
 
         var updateIndicators = function (data) {
-            Ext.getCmp('OptiTermDueTo').setValue( data.msg.result_network.exit_status.msg );
-            Ext.getCmp('kpi_cost').setValue( data.msg.result_network.indicators.cost );
-            Ext.getCmp('kpi_CAPEX').setValue( data.msg.result_network.indicators.CAPEX );
-            Ext.getCmp('kpi_OPEX').setValue( data.msg.result_network.indicators.OPEX );
-            Ext.getCmp('kpi_CO2').setValue( data.msg.result_network.indicators.CO2 );
-            Ext.getCmp('kpi_potable').setValue( data.msg.result_network.indicators.potable );
-            Ext.getCmp('kpi_totalLossWater').setValue( data.msg.result_network.indicators.totalLossWater );
-            Ext.getCmp('kpi_electricity').setValue( data.msg.result_network.indicators.electricity );
+            Ext.getCmp('OptiTermDueTo').setValue( data.msg.data.outputs.cplex.cplexstatusmsg );
+            Ext.getCmp('kpi_cost').setValue( data.msg.data.outputs.indicators.cost );
+            Ext.getCmp('kpi_CAPEX').setValue( data.msg.data.outputs.indicators.CAPEX );
+            Ext.getCmp('kpi_OPEX').setValue( data.msg.data.outputs.indicators.OPEX );
+            Ext.getCmp('kpi_CO2').setValue( data.msg.data.outputs.indicators.CO2 );
+            Ext.getCmp('kpi_potable').setValue( data.msg.data.outputs.indicators.potable );
+            Ext.getCmp('kpi_totalLossWater').setValue( data.msg.data.outputs.indicators.totalLossWater );
+            Ext.getCmp('kpi_electricity').setValue( data.msg.data.outputs.indicators.electricity );
         };
 
         // Generate a unique Simulation ID

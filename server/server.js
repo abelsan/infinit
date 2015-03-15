@@ -57,9 +57,9 @@ console.log("Loading results from DB");
 			// Get the documents collection
 			var collection = db.collection('test_coll');
 
-console.log("searching: " + 'result_network.userID:' + in_userID);
+console.log("searching: " + 'userID:' + in_userID);
 			// Find the simulation results
-			collection.find({'result_network.userID':Number(in_userID), 'result_network.simID':in_simID}).toArray(function(err, docs) {
+			collection.find({'userID':Number(in_userID), 'simID':in_simID}).toArray(function(err, docs) {
 				assert.equal(err, null);
 				assert.equal(1, docs.length); // We expect only 1 document.
 				console.log("Found the following " + docs.length + " records:");
@@ -81,7 +81,7 @@ console.log("searching: " + 'result_network.userID:' + in_userID);
 			findDocuments(db, function(docs) {
 				res.send({
 		  			'msg': {
-		  				'result_network':docs[0].result_network,
+		  				'data':docs[0],
 		  				'files':files ,
 		  				'stdout':stdout ,
 		  				'stderr':stderr
@@ -127,7 +127,7 @@ app.get('/test', function(req, res) {
 		findDocument(db, function(doc) {
 			res.send({
 	  			'msg': {
-	  				'result_network':doc.result_network,
+	  				'data':doc,
 	  				'files':"none" ,
 	  				'stdout':"Nothing" ,
 	  				'stderr':"Nothing"
@@ -169,10 +169,7 @@ app.get('/initial_network', function(req, res) {
 		findDocument(db, function(doc) {
 			res.send({
 	  			'msg': {
-	  				'result_network': {
-	  					'nodes': doc.nodes,
-	  					'edges': doc.edges,
-	  				},
+	  				'data': doc,
 	  				'files':"none" ,
 	  				'stdout':"Nothing" ,
 	  				'stderr':"Nothing"

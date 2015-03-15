@@ -90,19 +90,11 @@ handles.W(index(handles.KPI,'CO2')) = 0;
 handles.W(index(handles.KPI,'potable water')) = 0;
 handles.W(index(handles.KPI,'electricity')) = 0;
 
-% Node Set Definition
-handles.setNode = [];
-[handles.setNode] = setupExistingNodes(handles.setNode,handles.numCity,handles.txtCity,handles.numDesal,handles.txtDesal,handles.numPower,handles.txtPower,handles.flow,handles.v); % existing nodes
-[handles.setNode] = setupCandidateNodes(handles.setNode,handles.numDesalCandid,handles.txtDesalCandid,handles.flow,handles.v); % candidate nodes
-handles.N = size(handles.setNode,1); % number of nodes
 
-% Edge Set Definition
-handles.setEdge = [];
-[handles.setEdge] = setupExistingLoops(handles.setNode,handles.setEdge,handles.numCity,handles.txtCity,handles.numDesal,handles.txtDesal,handles.numPower,handles.txtPower,handles.flow,handles.v,handles.w,handles.KPI); % existing resource processing loops
-[handles.setEdge] = setupCandidateLoops(handles.setNode,handles.setEdge,handles.numDesalCandid,handles.txtDesalCandid,handles.flow,handles.v,handles.w,handles.KPI); % candidate resource processing loops
-[handles.setEdge] = setupExistingEdges(handles.setNode,handles.setEdge,handles.numPipeline,handles.txtPipeline,handles.numPowerline,handles.txtPowerline,handles.flow,handles.v,handles.binary,handles.w,handles.KPI); % existing pipelines and powerlines
-[handles.setEdge] = setupCandidateEdges(handles.setNode,handles.setEdge,handles.numPipelineCandid,handles.txtPipelineCandid,handles.flow,handles.v,handles.binary,handles.w,handles.KPI); % candidate pipelines
+[handles.setNode,handles.setEdge] = getNodesAndEdgesFromFile(filename);
+handles.N = size(handles.setNode,1); % number of nodes
 handles.E = size(handles.setEdge,1); % number of edges
+
 
 % INFINIT MILP Parameters
 % setNode                           setEdge
@@ -139,7 +131,7 @@ ui = handles.setEdge(:,16);
 
 %%
 
-disp(['Setup INFINIT.' ]);
+disp('Setup INFINIT.');
 
 % [fall,f,Aineq,bineq,Aeq,beq,lb] = setupINFINIT(v,w,vw,W,N,E,OD,cx,cy,cz,Ao,Ai,bc,B,Co,Ci,lo,li,uo,ui);
 [handles.fall,handles.f,handles.Aineq,handles.bineq,handles.Aeq,handles.beq,handles.lb] = setupINFINIT(handles.v,handles.w,handles.vw,handles.W,handles.N,handles.E,OD,handles.cx,handles.cy,handles.cz,Ao,Ai,bc,B,Co,Ci,lo,li,uo,ui);
@@ -191,7 +183,8 @@ options.parameter2009 = parameter2009;
 
 
 % MILP Solver (CPLEX)
-[x,J,exitflag,output] = cplexmilp(handles.f,handles.Aineq,handles.bineq,handles.Aeq,handles.beq,[],[],[],handles.lb,[],handles.ctype,[],options);
+% [x,J,exitflag,output] = cplexmilp(handles.f,handles.Aineq,handles.bineq,handles.Aeq,handles.beq,[],[],[],handles.lb,[],handles.ctype,[],options);
+[x,~,~,output] = cplexmilp(handles.f,handles.Aineq,handles.bineq,handles.Aeq,handles.beq,[],[],[],handles.lb,[],handles.ctype,[],options);
 
 disp('Presenting results');
 
@@ -232,26 +225,23 @@ indicators.potable = handles.potable(handles.i); % total potable water productio
 indicators.totalLossWater = handles.totalLossWater(handles.i); % total water loss in pipeline
 indicators.electricity = handles.electricity(handles.i); % total electricity generation
 
-disp(['Saving "results" on database']);
-
-edges = getEdgesExisting(handles.setNode,handles.setEdge);
-nodes = getLayoutNodesUsed(handles.setNode,handles.setEdge,handles.flow,handles.xyz);
-
-disp(['Saving "network" on database']);
+disp('Formating outputs');
 
 % Simulation Parameters
-result.input_filename = filename;
-result.cost = handles.sliderCost;
-result.CO2 = handles.sliderCO2;
-result.timelimit = timelimit;
-result.optimality_gap = parameter2009;
+result.inputs.filename = filename;
+result.inputs.cost = handles.sliderCost;
+result.inputs.CO2 = handles.sliderCO2;
+result.inputs.timelimit = timelimit;
+result.inputs.optimality_gap = parameter2009;
+result.inputs.edges = getInitialEdges(handles.setNode,handles.setEdge)';
+result.inputs.nodes = getInitialNodes(handles.setNode)';
 
 % Optimization result
-result.indicators = indicators;
-result.nodes = nodes'; % Data is read in column-wise order.
-result.edges = edges'; % Data is read in column-wise order.
-result.exit_status.cplexstatus = output.cplexstatus; % Data is read in column-wise order.
-result.exit_status.msg = handles.termination{handles.i}; % Data is read in column-wise order.
+result.outputs.cplex.cplexstatus = output.cplexstatus;
+result.outputs.cplex.cplexstatusmsg = handles.termination{handles.i};
+result.outputs.indicators = indicators;
+result.outputs.nodes = getResultNodes(handles.setNode,handles.setEdge,handles.flow,handles.xyz)'; % Data is read in column-wise order.
+result.outputs.edges = getResultEdges(handles.setNode,handles.setEdge,handles.xyz)'; % Data is read in column-wise order.
 
 % Simulation settings
 result.userID = settings.userID;
@@ -259,7 +249,6 @@ result.simID = settings.simID; % Simulation ID
 result.sessionID = settings.sessionID; % Session ID
 result.date_end = datestr(now); % Finish date
 
-% status = store_on_db(settings.db_name, settings.collection, result);
 
 % TODO: Define the meaning of status output, i.e. status=1 means OK, etc...
 status = 1;

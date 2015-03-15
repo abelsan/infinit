@@ -8,7 +8,6 @@ addpath('../matlab/jsonlab');
 import com.mongodb.util.JSON;
 import com.mongodb.BasicDBObject;
 
-
 a = savejson(obj_name,data);
 
 res(1) = JSON.parse(a);

@@ -14,7 +14,7 @@ db = m.getDB(db_name); % get db object
 
 coll = db.getCollection(collection);
 
-doc = data2json('result_network', data);
+doc = data2json('', data);
 
 coll.insert(doc);
 
