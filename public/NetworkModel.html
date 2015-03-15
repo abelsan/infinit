@@ -595,7 +595,11 @@ Ext.application({
 
             legend.innerHTML = content.join('');
             legend.index = 1;
-            h_map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].pop();
+            var control = h_map.controls[google.maps.ControlPosition.RIGHT_BOTTOM];
+
+            if ( control.length !== 0 ) {
+                h_map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].pop();
+            }
             h_map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(legend);
         };
 
