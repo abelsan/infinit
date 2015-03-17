@@ -4,7 +4,6 @@ function [nodes,edges] = getNodesAndEdgesFromFile(input_filename)
 %
 
 
-
 %% Inputs
 
 disp(['Loading data from file: ' input_filename]);
@@ -97,5 +96,8 @@ handles.setEdge = [];
 % Result:
 nodes = handles.setNode;
 edges = handles.setEdge;
+
+
+
 
 end

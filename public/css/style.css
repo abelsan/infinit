@@ -38,3 +38,7 @@ input.hidden { display: none; }
 	border: 1px solid black;
 	border-radius: 5px;
 }
+
+.ver_list .x-form-cb-checked{
+    font-weight:bold;
+}

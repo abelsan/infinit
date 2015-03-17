@@ -120,7 +120,7 @@ guidata(hObject, handles);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = SSDN_INFINIT_OutputFcn(hObject, eventdata, handles) 
+function varargout = SSDN_INFINIT_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -310,7 +310,7 @@ function network_pushbutton_Callback(hObject, eventdata, handles)
 if handles.generate == 1
     set(handles.step2_text21,'String','Wait...','ForegroundColor','red','FontWeight','bold');
     drawnow;
-    
+
     if handles.network == 0
         handles.KSA_map(2) = axes('Position',[0.23117033603707995 0.015677491601343786 0.4640787949015064 0.7894736842105263]);
         axes(handles.KSA_map(2));
@@ -336,9 +336,9 @@ if handles.generate == 1
         handles.stackNetwork = 1;
         handles.stackResult = 0;
     end
-    
+
     set(handles.step2_text21,'String','Done!  ','ForegroundColor','blue','FontWeight','bold');
-    
+
     guidata(hObject, handles);
 end
 
@@ -411,13 +411,13 @@ if handles.generate == 1
     set(handles.step3_text15,'String','Wait...','ForegroundColor','red','FontWeight','bold');
     set(handles.step3_text25,'ForegroundColor',[0.5 0.5 0.5]);
     drawnow;
-    
+
     % Normalizer
     normCost = 6.7173; % 2010-2030
     normCO2 = 11.9896; % 2010-2030
     % normCost = 6.8368; % 2010-2030 twice pipeline CAPEX
     % normCO2 = 24.5628; % 2010-2030 twice pipeline CAPEX
-    
+
     % Objective Function Weight
     handles.W = zeros(size(handles.KPI));
     handles.weightCost = handles.sliderCost/(handles.sliderCost+handles.sliderCO2);
@@ -428,13 +428,13 @@ if handles.generate == 1
     handles.W(index(handles.KPI,'CO2')) = handles.weightCO2/normCO2+e;
     handles.W(index(handles.KPI,'potable water')) = 0;
     handles.W(index(handles.KPI,'electricity')) = 0;
-    
+
     [handles.fall,handles.f] = setupObjFun(handles.v,handles.w,handles.W,handles.E,handles.cx,handles.cy,handles.cz);
-    
+
     handles.setWeight = 1;
-    
+
     set(handles.step3_text15,'String','Done!  ','ForegroundColor','blue','FontWeight','bold');
-    
+
     guidata(hObject, handles);
 end
 
@@ -494,23 +494,22 @@ function optimize_pushbutton_Callback(hObject, eventdata, handles)
 if handles.generate == 1 && handles.setWeight == 1
     set(handles.step3_text25,'String','Wait...','ForegroundColor','red','FontWeight','bold');
     drawnow;
-   
+
     addpath('/opt/ibm/ILOG/CPLEX_Studio126/cplex/matlab/');
-    
+
     % Options
     options = cplexoptimset;
-%     options = cplexoptimset('cplex');
     options.timelimit = str2double(get(handles.step3_edit1,'String'));
     options.parameter2009 = str2double(get(handles.step3_edit2,'String'))/100;
-    
+
     % MILP Solver (CPLEX)
     [x,J,exitflag,output] = cplexmilp(handles.f,handles.Aineq,handles.bineq,handles.Aeq,handles.beq,[],[],[],handles.lb,[],handles.ctype,[],options);
-    
+
     handles.i = handles.i+1;
-    
+
     handles.fx = handles.fall'*x;
     handles.xyz = splitvw(x,handles.v,handles.w,handles.vw,handles.E);
-    
+
     if output.cplexstatus == 102
         handles.termination{handles.i} = ['Optimality Gap of ' get(handles.step3_edit2,'String') '%'];
         set(handles.result_text02,'String',handles.termination{handles.i},'ForegroundColor','blue','FontWeight','bold');
@@ -539,7 +538,7 @@ if handles.generate == 1 && handles.setWeight == 1
     set(handles.result_text52,'String',[num2str(handles.potable(handles.i),'%6.0f') ' '],'FontWeight','bold'); % total potable water production
     set(handles.result_text62,'String',[num2str(handles.totalLossWater(handles.i),'%6.1f') ' ']); % total water loss in pipeline
     set(handles.result_text72,'String',[num2str(handles.electricity(handles.i),'%6.0f') ' '],'FontWeight','bold'); % total electricity generation
-    
+
     handles.KSA_result(handles.i) = axes('Position',[0.23117033603707995 0.015677491601343786 0.4640787949015064 0.7894736842105263]);
     axes(handles.KSA_result(handles.i));
     latlim = [12 34];
@@ -572,7 +571,7 @@ if handles.generate == 1 && handles.setWeight == 1
     geoshow(13.4,52.5+(58.5-52.5)*handles.weightCO2,'DisplayType','multipoint',...
                                                     'Marker','x','LineWidth',2.5,'MarkerEdgeColor',[0 0.7 1],...
                                                     'MarkerSize',12);
-    
+
     axes(handles.pareto);
     handles.paretoPlot(handles.i) = plot(handles.cost(handles.i)/10^3,handles.CO2(handles.i),'rx','LineWidth',1.5,'MarkerSize',8); % 'MarkerEdgeColor','k','MarkerFaceColor','g'
     handles.paretoCurrent(handles.i) = plot(handles.cost(handles.i)/10^3,handles.CO2(handles.i),'o','LineWidth',1,'MarkerEdgeColor',[1 0.85 0],'MarkerFaceColor',[1 0.85 0],'MarkerSize',12);
@@ -582,15 +581,15 @@ if handles.generate == 1 && handles.setWeight == 1
     else
         handles.result = 1;
     end
-    
+
     handles.stackNetwork = 0;
     for i = 1:handles.i
         handles.stackResult(i) = 1;
     end
     handles.iCurrent = handles.i;
-    
+
     set(handles.step3_text25,'String','Done!  ','ForegroundColor','blue','FontWeight','bold');
-    
+
     guidata(hObject, handles);
 end
 
@@ -647,11 +646,11 @@ if handles.stackNetwork == 0
     if handles.iCurrent > 1
         uistack(handles.KSA_result(handles.iCurrent-1),'top');
         handles.stackResult(handles.iCurrent) = 0;
-        
+
         set(handles.paretoCurrent(handles.iCurrent),'Visible','off');
-        
+
         handles.iCurrent = handles.iCurrent-1;
-        
+
         if strncmp(handles.termination{handles.iCurrent},'Opti',4) == 1
             set(handles.result_text02,'String',handles.termination{handles.iCurrent},'ForegroundColor','blue','FontWeight','bold');
         elseif strncmp(handles.termination{handles.iCurrent},'Time',4) == 1
@@ -666,7 +665,7 @@ if handles.stackNetwork == 0
         set(handles.result_text52,'String',[num2str(handles.potable(handles.iCurrent),'%6.0f') ' '],'FontWeight','bold'); % total potable water production
         set(handles.result_text62,'String',[num2str(handles.totalLossWater(handles.iCurrent),'%6.1f') ' ']); % total water loss in pipeline
         set(handles.result_text72,'String',[num2str(handles.electricity(handles.iCurrent),'%6.0f') ' '],'FontWeight','bold'); % total electricity generation
-        
+
         set(handles.paretoCurrent(handles.iCurrent),'Visible','on');
     end
 elseif handles.stackNetwork == 1
@@ -691,11 +690,11 @@ if handles.stackNetwork == 0
     if handles.iCurrent < handles.i
         uistack(handles.KSA_result(handles.iCurrent+1),'top');
         handles.stackResult(handles.iCurrent+1) = 1;
-        
+
         set(handles.paretoCurrent(handles.iCurrent),'Visible','off');
-        
+
         handles.iCurrent = handles.iCurrent+1;
-        
+
         if strncmp(handles.termination{handles.iCurrent},'Opti',4) == 1
             set(handles.result_text02,'String',handles.termination{handles.iCurrent},'ForegroundColor','blue','FontWeight','bold');
         elseif strncmp(handles.termination{handles.iCurrent},'Time',4) == 1
@@ -710,7 +709,7 @@ if handles.stackNetwork == 0
         set(handles.result_text52,'String',[num2str(handles.potable(handles.iCurrent),'%6.0f') ' '],'FontWeight','bold'); % total potable water production
         set(handles.result_text62,'String',[num2str(handles.totalLossWater(handles.iCurrent),'%6.1f') ' ']); % total water loss in pipeline
         set(handles.result_text72,'String',[num2str(handles.electricity(handles.iCurrent),'%6.0f') ' '],'FontWeight','bold'); % total electricity generation
-        
+
         set(handles.paretoCurrent(handles.iCurrent),'Visible','on');
     end
 elseif handles.stackNetwork == 1

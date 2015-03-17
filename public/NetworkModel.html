@@ -100,6 +100,9 @@ Ext.application({
                             value: 123,
                             readOnly: true,
                             width: '100%',
+                        // }, {
+                        //     xtype: 'combobox',
+
                         }, {
                             fieldLabel: 'Session',
                             id: 'sessionID',
@@ -117,21 +120,20 @@ Ext.application({
                     bodyPadding: 5,
                     frame: true,
                     items: [{
-                        xtype      : 'fieldcontainer',
+                        xtype      : 'radiogroup',
                         fieldLabel : 'Use database',
-                        defaultType: 'radiofield',
                         layout: 'hbox',
+                        id: 'db_src',
+                        cls:'ver_list',
                         items: [{
                             boxLabel  : 'Default',
                             name      : 'db_src',
                             inputValue: 'src_default',
-                            id        : 'radio1',
                             checked: true,
                         }, {
                             boxLabel  : 'New',
 		                    name      : 'db_src',
 		                    inputValue: 'src_new_file',
-		                    id        : 'radio2'
 		                }]
                     }, {
                         xtype: 'filefield',
@@ -142,6 +144,7 @@ Ext.application({
                         anchor: '100%',
                         buttonText: 'Select File',
                         disabled: true,
+                        // enctype: 'multipart/form-data',
                     }, {
                         xtype: 'button',
                         text: 'Upload',
@@ -436,6 +439,8 @@ Ext.application({
             items: [childPanel1]
         });
 
+        var sb = Ext.getCmp('sb_run_status');
+
 
         //////////////////////////////////////////////////////////////////
         //////////////////////////////////////////////////////////////////
@@ -449,30 +454,49 @@ Ext.application({
 		var server_addr = domain_name + ':8080';
 
 		var showInitialNetwork = function (h_map) {
-		    var resource = 'http://' + server_addr + '/initial_network?'+
-                'inputfile=Default';
+            sb.showBusy('Loading network...');
+            var in_userID = Ext.getCmp('userID').getValue().trim();
+            var in_simID = Ext.getCmp('simID').getValue().trim();
+            var in_sessionID = Ext.getCmp('sessionID').getValue().trim();
+
+            var resource = 'http://' + server_addr + '/initial_network?'+
+                'userID=' + in_userID +
+                '&sessionID=' + in_sessionID +
+                '&src=' + Ext.getCmp('db_src').getChecked()[0].inputValue ;
 
             // Request user data through an XHR.
             Ext.Ajax.request({
                 url: resource,
                 success: function(response, opts) {
                     var obj = Ext.decode(response.responseText);
-                    // Backup results gotten from the server.
-                    initial_network = obj;
-                    current_network = initial_network;
 
-    				plotMap(h_map,current_network);
-                    insertLegend(h_map,current_network);
+                    if ( obj !== null ) {
+                        initial_network = obj; // Backup results gotten from the server.
+                        current_network = initial_network;
+
+                        sb.showBusy('Plotting...');
+                        plotMap(h_map,current_network);
+                        insertLegend(h_map,current_network);
+
+                        sb.setStatus({
+                            iconCls: 'x-status-valid',
+                            text: 'Finished',
+                            clear: { wait: 1000, },
+                        });
+                    }
                 },
                 failure: function(response, opts) {
                     console.log('server-side failure with status code ' + response.status);
+                    sb.setStatus({
+                        text: 'Finished with error',
+                        iconCls: 'x-status-error',
+                    });
                 }
             });
         };
 
         runModel = function() {
             Ext.getCmp('b_run_model').setDisabled(true);
-            var sb = Ext.getCmp('sb_run_status');
             sb.showBusy('Running simulation...'); // Set the status bar to show that something is processing:
 
             var in_userID = Ext.getCmp('userID').getValue().trim();
@@ -506,6 +530,7 @@ Ext.application({
                     // Backup results gotten from the server.
                     current_network = obj;
 
+                    sb.showBusy('Plotting...');
                     plotMap(h_map,current_network);
                     insertLegend(h_map,current_network);
                     updateIndicators(current_network);
@@ -605,7 +630,6 @@ Ext.application({
 
 
         // Graphic design specification for the map
-        var map_initial_node_scale = 1;
         var map_design_format = {
             // Edges
             'pipeline': {
@@ -672,7 +696,7 @@ Ext.application({
                         strokeWeight: 1,
                         fillColor: '#0000FF',
                         fillOpacity: 1,
-                        scale: 1, // map_initial_node_scale,
+                        scale: 1,
                     },
                 },
                 'candid':{
@@ -687,7 +711,7 @@ Ext.application({
                         strokeWeight: 1,
                         fillColor: '#bbbbbb',
                         fillOpacity: 1,
-                        scale: 1, // map_initial_node_scale,
+                        scale: 1,
                     },
                 }
             },
@@ -705,7 +729,7 @@ Ext.application({
                         strokeWeight: 1,
                         fillOpacity: 1,
                         fillColor: '#FFFF00',
-                        scale: 1, // map_initial_node_scale,
+                        scale: 1,
                     },
                 }
             },
@@ -723,7 +747,7 @@ Ext.application({
                         strokeWeight: 1,
                         fillColor: '#00FF00',
                         fillOpacity: 1,
-                        scale: 1, // map_initial_node_scale,
+                        scale: 1,
                     },
                 },
                 'without_wastewater_treatment':{
@@ -738,7 +762,7 @@ Ext.application({
                         strokeWeight: 1,
                         fillColor: '#FF0000',
                         fillOpacity: 1,
-                        scale: 1, // map_initial_node_scale,
+                        scale: 1,
                     },
                 }
             }

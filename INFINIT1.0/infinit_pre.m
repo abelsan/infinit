@@ -1,6 +1,14 @@
-function [output,status] = infinit_pre(settings,inputs)
+function [output,status] = infinit_pre(inputs)
 % Conversion to script of Tak's model.
 % GUI elements were removed.
+%
+% inputs structure members:
+%   cost
+%   CO2
+%   time_limit
+%   optimality_gap
+%   input_filename
+%   filename
 %
 
 
@@ -242,12 +250,6 @@ result.outputs.cplex.cplexstatusmsg = handles.termination{handles.i};
 result.outputs.indicators = indicators;
 result.outputs.nodes = getResultNodes(handles.setNode,handles.setEdge,handles.flow,handles.xyz)'; % Data is read in column-wise order.
 result.outputs.edges = getResultEdges(handles.setNode,handles.setEdge,handles.xyz)'; % Data is read in column-wise order.
-
-% Simulation settings
-result.userID = settings.userID;
-result.simID = settings.simID; % Simulation ID
-result.sessionID = settings.sessionID; % Session ID
-result.date_end = datestr(now); % Finish date
 
 
 % TODO: Define the meaning of status output, i.e. status=1 means OK, etc...
