@@ -2,11 +2,13 @@
 <html>
     <head>
         <title>Network Model</title>
-		<script type="text/javascript" src="js/ext/build/ext-all.js"></script>
+        <script type="text/javascript" src="js/ext/build/ext-all.js"></script>
         <link rel="stylesheet" type="text/css" href="js/ext/packages/ext-theme-neptune/build/resources/ext-theme-neptune-all.css">
-		<link rel="stylesheet" type="text/css" href="css/style.css">
+        <link rel="stylesheet" type="text/css" href="css/style.css">
         <link rel="stylesheet" type="text/css" href="js/ext/src/ux/statusbar/css/statusbar.css" />
-		<script type="text/javascript" src="js/ext/packages/ext-theme-neptune/build/ext-theme-neptune.js"></script>
+        <script type="text/javascript" src="js/ext/packages/ext-theme-neptune/build/ext-theme-neptune.js"></script>
+        <script type="text/javascript" src="js/ext/packages/sencha-charts/build/sencha-charts-debug.js"></script>
+        <link rel="stylesheet" type="text/css" href="js/ext/packages/sencha-charts/build/neptune/resources/sencha-charts-all.css" />
 		<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=true"></script>
         <script src="js/UUID.js/dist/uuid.core.js">// If you only need UUID.generate() method </script>
 
@@ -15,11 +17,24 @@
 
 var timeout_tol = 10000; // {ms} XHR calls timeout tolerance.
 
-Ext.Loader.setConfig({enabled: true});
-Ext.Loader.setPath('Ext.ux', 'js/ext/src/ux');
+// Ext.Loader.setConfig({enabled: true});
+Ext.Loader.setConfig({
+    enabled: true,
+    paths: {
+        'Ext': './js/ext/src',
+        'Ext.chart': './js/ext/packages/sencha-charts/src/chart',
+        'Ext.draw': './js/ext/packages/sencha-charts/src/draw',
+    },
+});
+// Ext.Loader.setPath('Ext', 'js/ext/src');
+// Ext.Loader.setPath('Ext.chart', 'js/ext/packages/sencha-charts/src/chart');
+// Ext.Loader.setPath('Ext.draw', 'js/ext/packages/sencha-charts/src/draw');
 Ext.require([
     'Ext.ux.GMapPanel', // Alternative: https://gist.github.com/minibikini/1160378
     'Ext.ux.statusbar.StatusBar',
+    'Ext.form.field.ComboBox',
+    'Ext.chart.series.Pie',
+    'Ext.chart.series.Polar',
 ]);
 
 Ext.application({
@@ -28,9 +43,9 @@ Ext.application({
     launch: function () {
 
         var runModel;
-        var initial_network;
-        var current_network;
-        var simulation_result;
+        var initial_network = [];
+        var current_network = [];
+        // var simulation_result;
 
         Ext.getBody().setStyle('overflow', 'auto');
 
@@ -53,21 +68,70 @@ Ext.application({
 		    }
 		};
 
-        function fn_display_mode_changed() {
+        // function fn_display_mode_changed() {
+        //     if ( this.getValue() ){
+        //         Ext.getCmp('cb_all_map_initial').setValue(false);
+        //     }
+
+        //     var h_map = Ext.getCmp('googleMap_initial').gmap;
+        //     plotMap(h_map,current_network);
+        // }
+        var fn_display_mode_changed = function (which,network,markers) {
             if ( this.getValue() ){
-                Ext.getCmp('cb_all').setValue(false);
+                Ext.getCmp('cb_all_map_'+which).setValue(false);
             }
 
-            var h_map = Ext.getCmp('googleMap').gmap;
-            plotMap(h_map,current_network);
-        }
+            var h_map = Ext.getCmp('googleMap_'+which).gmap;
+            plotMap(h_map,network,markers);
+        };
+
+        var records_costs = [];
+        var total_cost_store = Ext.create('Ext.data.Store',{
+            // fields : ['id','name'],
+            fields: ['ind', 'value' ], // ind: indicator
+            // data: records,
+            data: records_costs,
+            paging : false
+        });
+
+        // Wizard: http://gmaps-samples-v3.googlecode.com/svn/trunk/styledmaps/wizard/index.html
+        var original_map_style = [{
+            "stylers": [{ "visibility": "off" }],
+        },{
+            "featureType": "administrative.country",
+            "elementType": "geometry.stroke",
+            "stylers": [{ "visibility": "on" }],
+        },{
+            "featureType": "administrative.country",
+            "elementType": "labels.text",
+            "stylers": [{ "visibility": "on" }],
+        },{
+            "featureType": "water",
+            "elementType": "geometry.fill",
+            "stylers": [{ "visibility": "on" }],
+        },{
+            "featureType": "administrative.locality",
+            "elementType": "labels.icon",
+            "stylers": [
+                { "color": "#808080" },
+                { "visibility": "simplified" },
+            ],
+        },{
+            "featureType": "administrative.locality",
+            "elementType": "labels.text",
+            "stylers": [{ "visibility": "on" }],
+        },{
+        }];
+
 
         // main panel
         var childPanel1 = Ext.create('Ext.panel.Panel', {
             extend: 'Ext.container.Viewport',
             layout: 'border',
-            height: 750,
-            width: 1400,
+            height: 900,
+            // height: '100%',
+            // width: 1400,
+            width: '100%',
             items: [{ // main north panel
                 region: 'north',
                 html: '<h1>KSA Water/Energy INFINT Model 1.0</h1>',
@@ -77,7 +141,7 @@ Ext.application({
                 }
             }, { // main west panel
                 region: 'west',
-                width: 300,
+                width: 250,
                 bodyPadding: 5,
                 items: [{
                     title: 'User info',
@@ -85,8 +149,10 @@ Ext.application({
                     bodyPadding: 5,
                     frame: true,
                     items: [{
-                        defaultType: 'textfield',
+                        xtype: 'form',
+                        // defaultType: 'textfield',
                         items: [{
+                            xtype: 'textfield',
                             fieldLabel: 'User ID',
                             id: 'userID',
                             name: 'userID',
@@ -94,23 +160,33 @@ Ext.application({
                             readOnly: true,
                             width: '100%',
                         }, {
+                            xtype: 'textfield',
                             fieldLabel: 'Simulation ID',
                             id: 'simID',
                             name: 'simID',
                             value: 123,
                             readOnly: true,
                             width: '100%',
-                        // }, {
-                        //     xtype: 'combobox',
-
                         }, {
-                            fieldLabel: 'Session',
+                            xtype:'combo',
                             id: 'sessionID',
+                            fieldLabel: 'Session',
                             name: 'sessionID',
-                            value: 123,
-                            readOnly: true,
+                            queryMode:'local',
+                            displayField:'display',
+                            valueField:'value',
+                            autoSelect:true,
+                            forceSelection:true,
                             width: '100%',
-                        }]
+                            store: Ext.create('Ext.data.Store', {
+                                fields: ['value','display'],
+                                data: [
+                                    { 'value':123, 'display':'One' },
+                                ],
+                            }),
+                            value: 123,
+                            // readOnly: true,
+                        }],
                     }]
                 }, {
                     // west panel #1 for loading the database
@@ -216,7 +292,8 @@ Ext.application({
                         text: 'Run',
                         id: 'b_run_model',
                         handler: function() {
-                            runModel();
+                            var h_map = Ext.getCmp('googleMap_optimized').gmap;
+                            runModel(h_map);
                         },
                     }, {
                         xtype: 'statusbar',
@@ -232,141 +309,229 @@ Ext.application({
                     }],
                 }],
             }, { // main center panel
-                itemId: 'centerregion',
+                // itemId: 'centerregion',
                 region: 'center',
-                bodyPadding: 5,
+                // bodyPadding: 5,
+                // xtype:'container',
+                layout: 'hbox',
                 items: [{ // center panel #1 -> google map + display modes
-                    itemId: 'centerregion',
-                    frame: 'true',
-                    height: 550,
-                    layout:'fit',
-                    items: [{
-                        xtype: 'gmappanel',
-						gmapType: 'map',
-						id: 'googleMap',
-						center: {
-							lat: 24.7,
-							lng: 46.7,
-						},
-						// mapConfOpts: ['enableScrollWheelZoom','enableDoubleClickZoom','enableDragging'],
-						mapOptions: {
-							zoom: 5,
-							mapTypeId: google.maps.MapTypeId.ROADMAP,
-                            styles: [{ // Wizard: http://gmaps-samples-v3.googlecode.com/svn/trunk/styledmaps/wizard/index.html
-                                "stylers": [
-                                  { "visibility": "off" }
-                                ]
-                              },{
-                                "featureType": "administrative.country",
-                                "elementType": "geometry.stroke",
-                                "stylers": [
-                                  { "visibility": "on" }
-                                ]
-                              },{
-                                "featureType": "administrative.country",
-                                "elementType": "labels.text",
-                                "stylers": [
-                                  { "visibility": "on" }
-                                ]
-                              },{
-                                "featureType": "water",
-                                "elementType": "geometry.fill",
-                                "stylers": [
-                                  { "visibility": "on" }
-                                ]
-                              },{
-                                "featureType": "administrative.locality",
-                                "elementType": "labels.icon",
-                                "stylers": [
-                                  { "color": "#808080" },
-                                  { "visibility": "simplified" }
-                                ]
-                              },{
-                                "featureType": "administrative.locality",
-                                "elementType": "labels.text",
-                                "stylers": [
-                                  { "visibility": "on" }
-                                ]
-                              },{
-                            }]
-						}
-                	}]
-                }, {
                     bodyPadding: 5,
                     items: [{
-                        xtype: 'checkboxgroup',
-                        fieldLabel: 'Display Modes',
-                        id: 'cb_display_group',
-                        name: 'cb_display_group',
-                        columns: 5,
+                        title: 'Initial network',
+                        itemId: 'centerregion_initial',
+                        frame: 'true',
+                        // width: 700,
+                        width: 600,
+                        height: 550,
+                        layout:'fit',
+                        items: [{
+                            xtype: 'gmappanel',
+                            gmapType: 'map',
+                            id: 'googleMap_initial',
+                            center: {
+                                lat: 24.7,
+                                lng: 46.7,
+                            },
+                            // mapConfOpts: ['enableScrollWheelZoom','enableDoubleClickZoom','enableDragging'],
+                            mapOptions: {
+                                zoom: 5,
+                                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                                styles: original_map_style,
+                            },
+                        }],
+                    }, {
                         bodyPadding: 5,
                         items: [{
-                            boxLabel: 'All ',
-                            id: 'cb_all',
-                            name: 'cb_display',
-                            inputValue: '1',
-                            checked: true,
-                            handler: function () {
-                                if ( this.getValue() ){
-                                    Ext.getCmp('cb_pipeline').setValue(false);
-                                    Ext.getCmp('cb_city').setValue(false);
-                                    Ext.getCmp('cb_power').setValue(false);
-                                    Ext.getCmp('cb_desal').setValue(false);
-                                }
+                            xtype: 'checkboxgroup',
+                            fieldLabel: 'Display Modes',
+                            id: 'cb_display_group',
+                            name: 'cb_display_group',
+                            columns: 5,
+                            bodyPadding: 5,
+                            items: [{
+                                boxLabel: 'All ',
+                                id: 'cb_all',
+                                name: 'cb_display',
+                                inputValue: '1',
+                                checked: true,
+                                handler: function () {
+                                    if ( this.getValue() ){
+                                        Ext.getCmp('cb_pipeline').setValue(false);
+                                        Ext.getCmp('cb_city').setValue(false);
+                                        Ext.getCmp('cb_power').setValue(false);
+                                        Ext.getCmp('cb_desal').setValue(false);
+                                    }
 
-                                var h_map = Ext.getCmp('googleMap').gmap;
-                                plotMap(h_map,current_network);
-                            }
-                        }, {
-                            boxLabel: 'Pipelines',
-                            id: 'cb_pipeline',
-                            name: 'cb_display',
-                            inputValue: '2',
-                            handler: fn_display_mode_changed,
-                        }, {
-                            boxLabel: 'City',
-                            id: 'cb_city',
-                            name: 'cb_display',
-                            inputValue: '3',
-                            handler: fn_display_mode_changed,
-                        }, {
-                            boxLabel: 'Power Plant',
-                            id: 'cb_power',
-                            name: 'cb_display',
-                            inputValue: '4',
-                            handler: fn_display_mode_changed,
-                        }, {
-                            boxLabel: 'Desalination Plant',
-                            id: 'cb_desal',
-                            name: 'cb_display',
-                            inputValue: '5',
-                            handler: fn_display_mode_changed,
-                        }, {
-                            boxLabel: 'Legend',
-                            id: 'cb_legend',
-                            name: 'cb_display',
-                            inputValue: '6',
-                            checked: true,
-                            handler: function () {
-                                if ( this.getValue() ) { // Show legend
-                                    Ext.get('legend').setStyle('display', 'block');
-                                } else { // Hide legend
-                                    Ext.get('legend').setStyle('display','none');
+                                    var h_map = Ext.getCmp('googleMap_initial').gmap;
+                                    plotMap(h_map,initial_network,markers_initial);
+                                    h_map = Ext.getCmp('googleMap_optimized').gmap;
+                                    plotMap(h_map,current_network,markers_optimized);
                                 }
-                            }
+                            }, {
+                                boxLabel: 'Pipelines',
+                                id: 'cb_pipeline',
+                                name: 'cb_display',
+                                inputValue: '2',
+                                handler: function () {
+                                    fn_display_mode_changed('initial',initial_network,markers_initial);
+                                    fn_display_mode_changed('optimized',current_network,markers_optimized);
+                                 },
+                            }, {
+                                boxLabel: 'City',
+                                id: 'cb_city',
+                                name: 'cb_display',
+                                inputValue: '3',
+                                handler: function () {
+                                    fn_display_mode_changed('initial',initial_network,markers_initial);
+                                    fn_display_mode_changed('optimized',current_network,markers_optimized);
+                                 },
+                            }, {
+                                boxLabel: 'Power Plant',
+                                id: 'cb_power',
+                                name: 'cb_display',
+                                inputValue: '4',
+                                handler: function () {
+                                    fn_display_mode_changed('initial',initial_network,markers_initial);
+                                    fn_display_mode_changed('optimized',current_network,markers_optimized);
+                                 },
+                            }, {
+                                boxLabel: 'Desalination Plant',
+                                id: 'cb_desal',
+                                name: 'cb_display',
+                                inputValue: '5',
+                                handler: function () {
+                                    fn_display_mode_changed('initial',initial_network,markers_initial);
+                                    fn_display_mode_changed('optimized',current_network,markers_optimized);
+                                 },
+                            }, {
+                                boxLabel: 'Legend',
+                                id: 'cb_legend',
+                                name: 'cb_display',
+                                inputValue: '6',
+                                checked: true,
+                                handler: function () {
+                                    if ( this.getValue() ) { // Show legend
+                                        Ext.get('legend_map_initial').setStyle('display', 'block');
+                                        Ext.get('legend_map_optimized').setStyle('display', 'block');
+                                    } else { // Hide legend
+                                        Ext.get('legend_map_initial').setStyle('display','none');
+                                        Ext.get('legend_map_optimized').setStyle('display','none');
+                                    }
+                                },
+                            }],
                         }],
                     }],
-                }]
+                }, { // Optimized network map
+                    bodyPadding: 5,
+                    items: [{
+                        // bodyPadding: 5,
+                        items: [{
+                            title: 'Optimized network',
+                            itemId: 'centerregion_optimized',
+                            frame: 'true',
+                            // width: 700,
+                            width: 600,
+                            height: 550,
+                            layout:'fit',
+                            items: [{
+                                xtype: 'gmappanel',
+                                gmapType: 'map',
+                                id: 'googleMap_optimized',
+                                center: {
+                                    lat: 24.7,
+                                    lng: 46.7,
+                                },
+                                // mapConfOpts: ['enableScrollWheelZoom','enableDoubleClickZoom','enableDragging'],
+                                mapOptions: {
+                                    zoom: 5,
+                                    mapTypeId: google.maps.MapTypeId.ROADMAP,
+                                    styles: original_map_style,
+                                },
+                            }],
+                        }],
+                    }, {
+                        // bodyPadding: 5,
+                        // items: [{
+                        //     xtype: 'checkboxgroup',
+                        //     fieldLabel: 'Display Modes',
+                        //     id: 'cb_display_group_map_optimized',
+                        //     name: 'cb_display_group_map_optimized',
+                        //     columns: 5,
+                        //     bodyPadding: 5,
+                        //     items: [{
+                        //         boxLabel: 'All ',
+                        //         id: 'cb_all_map_optimized',
+                        //         name: 'cb_display_map_optimized',
+                        //         inputValue: '1',
+                        //         checked: true,
+                        //         handler: function () {
+                        //             if ( this.getValue() ){
+                        //                 Ext.getCmp('cb_pipeline_map_optimized').setValue(false);
+                        //                 Ext.getCmp('cb_city_map_optimized').setValue(false);
+                        //                 Ext.getCmp('cb_power_map_optimized').setValue(false);
+                        //                 Ext.getCmp('cb_desal_map_optimized').setValue(false);
+                        //             }
+
+                        //             var h_map = Ext.getCmp('googleMap_optimized').gmap;
+                        //             plotMap(h_map,current_network);
+                        //         }
+                        //     }, {
+                        //         boxLabel: 'Pipelines',
+                        //         id: 'cb_pipeline_map_optimized',
+                        //         name: 'cb_display_map_optimized',
+                        //         inputValue: '2',
+                        //         handler: function () { fn_display_mode_changed('optimized'); },
+                        //     }, {
+                        //         boxLabel: 'City',
+                        //         id: 'cb_city_map_optimized',
+                        //         name: 'cb_display_map_optimized',
+                        //         inputValue: '3',
+                        //         handler: function () { fn_display_mode_changed('optimized'); },
+                        //     }, {
+                        //         boxLabel: 'Power Plant',
+                        //         id: 'cb_power_map_optimized',
+                        //         name: 'cb_display_map_optimized',
+                        //         inputValue: '4',
+                        //         handler: function () { fn_display_mode_changed('optimized'); },
+                        //     }, {
+                        //         boxLabel: 'Desalination Plant',
+                        //         id: 'cb_desal_map_optimized',
+                        //         name: 'cb_display_map_optimized',
+                        //         inputValue: '5',
+                        //         handler: function () { fn_display_mode_changed('optimized'); },
+                        //     }, {
+                        //         boxLabel: 'Legend',
+                        //         id: 'cb_legend_map_optimized',
+                        //         name: 'cb_display_map_optimized',
+                        //         inputValue: '6',
+                        //         checked: true,
+                        //         handler: function () {
+                        //             if ( this.getValue() ) { // Show legend
+                        //                 Ext.get('legend_map_optimized').setStyle('display', 'block');
+                        //             } else { // Hide legend
+                        //                 Ext.get('legend_map_optimized').setStyle('display','none');
+                        //             }
+                        //         },
+                        //     }],
+                        // }],
+                    }],
+                    // }],
+                }],
             }, { // main East panel
                 region: 'east',
+                // width: 300,
                 width: 300,
+                // width: '100%',
                 bodyPadding: 5,
                 items: [{
                     // east panel #1 shows results
-                    title: 'Results',
+                    // title: 'Results',
+                    title: 'KPIs',
                     split: false,
                     bodyPadding: 5,
                     frame: true,
+                    collapsible: true,
+                    width: 300,
                     items: [{
                         defaultType: 'textfield',
                         items: [{
@@ -382,53 +547,129 @@ Ext.application({
                             name: 'TotalCost',
                             readOnly: true,
                             value: '0.0',
-                            width: '100%',
+                            labelWidth: '150',
+                            // width: '100%',
+                            // layout: 'fit',
                         }, {
                             fieldLabel: 'Total CAPEX (MUSD/year)',
                             id: 'kpi_CAPEX',
                             name: 'TotalCAPEX',
                             readOnly: true,
                             value: '0.0',
-                            width: '100%',
+                            // width: '100% - 150',
+                            labelWidth: '150',
+                            labelAlign: 'right',
                         }, {
                             fieldLabel: 'Total OPEX (MUSD/year)',
                             id: 'kpi_OPEX',
                             name: 'TotalOPEX',
                             readOnly: true,
                             value: '0.0',
-                            width: '100%',
+                            labelWidth: '150',
+                            // width: '90%',
+                            labelAlign: 'right',
                         }, {
                             fieldLabel: 'Total CO2 Emission (MMT/year)',
                             id: 'kpi_CO2',
                             name: 'TotalCO2',
                             readOnly: true,
                             value: '0.0',
-                            width: '100%',
+                            // width: '100%',
+                            labelWidth: '150',
                         }, {
                             fieldLabel: 'Total Potable Water Production (MCM/year)',
                             id: 'kpi_potable',
                             name: 'TotalPotableWater',
                             readOnly: true,
                             value: '0.0',
-                            width: '100%',
+                            // width: '100%',
+                            labelWidth: '150',
                         }, {
                             fieldLabel: 'Total Water loss in Pipeline (%)',
                             id: 'kpi_totalLossWater',
                             name: 'TotalWaterLoss',
                             readOnly: true,
                             value: '0.0',
-                            width: '100%',
+                            // width: '100%',
+                            labelWidth: '150',
+                            labelAlign: 'right',
                         }, {
                             fieldLabel: 'Total Electricity Generation (GWh/year)',
                             id: 'kpi_electricity',
                             name: 'TotalElectricity',
                             readOnly: true,
                             value: '0.0',
+                            // width: '100%',
+                            labelWidth: '150',
+                        }],
+                    }],
+                }, {
+                    title: 'Graphs',
+                    xtype: 'panel',
+                    // split: true,
+                    bodyPadding: 5,
+                    width: 300,
+                    // height: 400,
+                    // layout: 'fit',
+                    // frame: true,
+                    split: false,
+                    frame: true,
+                    collapsible: true,
+                    items: [{
+                        xtype: 'panel',
+                        items: [{
+                            xtype: 'polar',
+                            id: 'graph_total_cost',
                             width: '100%',
-                        }]
-                    }]
-                }]
-            }]
+                            height: 300,
+                            insetPadding: 50,
+                            innerPadding: 20,
+                            // legend: {
+                            //     docked: 'bottom',
+                            // },
+                            interactions: ['rotate', 'itemhighlight'],
+                            store: total_cost_store,
+                            // store: Ext.create('Ext.data.JsonStore', {
+                            //     fields: ['ind', 'value' ], // ind: indicator
+                            //     data: records_costs,
+                            //     // [
+                            //         // { ind: 'CAPEX', value: 68.3 },
+                            //         // { ind: 'OPEX', value: 31.7 },
+                            //     // ],
+                            // }),
+                            sprites: [{
+                                type: 'text',
+                                text: 'Total Cost (MUSD/year)',
+                                fontSize: 15,
+                                width: 100,
+                                height: 30,
+                                x: 40, // the sprite x position
+                                y: 20  // the sprite y position
+                            }],
+                            series: [{
+                                type: 'pie',
+                                angleField: 'value',
+                                label: {
+                                    field: 'ind',
+                                    calloutLine: {
+                                        length: 30,
+                                        width: 3,
+                                        // specifying 'color' is also possible here
+                                    },
+                                },
+                                highlight: true,
+                                tooltip: {
+                                    trackMouse: true,
+                                    renderer: function(storeItem, item) {
+                                        // this.setHtml(storeItem.get('ind') + ': ' + storeItem.get('value') + '%');
+                                        this.setHtml( storeItem.get('ind') + ': ' + storeItem.get('value') );
+                                    },
+                                },
+                            }],
+                        }],
+                    }],
+                }],
+            }],
         }); // childPanel1
 
         // New pareto graph
@@ -448,7 +689,8 @@ Ext.application({
         //
 
 		var map_handler = {"map":null,"options":null};
-		var markers = [];
+        var markers_initial = [];
+		var markers_optimized = [];7
 
 		var domain_name = window.location.hostname;
 		var server_addr = domain_name + ':8080';
@@ -457,7 +699,8 @@ Ext.application({
             sb.showBusy('Loading network...');
             var in_userID = Ext.getCmp('userID').getValue().trim();
             var in_simID = Ext.getCmp('simID').getValue().trim();
-            var in_sessionID = Ext.getCmp('sessionID').getValue().trim();
+            var in_sessionID = Ext.getCmp('sessionID').getValue();
+            //var in_sessionID = Ext.getCmp('sessionID').getValue();
 
             var resource = 'http://' + server_addr + '/initial_network?'+
                 'userID=' + in_userID +
@@ -472,11 +715,11 @@ Ext.application({
 
                     if ( obj !== null ) {
                         initial_network = obj; // Backup results gotten from the server.
-                        current_network = initial_network;
+                        // current_network = initial_network;
 
                         sb.showBusy('Plotting...');
-                        plotMap(h_map,current_network);
-                        insertLegend(h_map,current_network);
+                        plotMap(h_map,initial_network,markers_initial);
+                        insertLegend(h_map,initial_network);
 
                         sb.setStatus({
                             iconCls: 'x-status-valid',
@@ -495,13 +738,13 @@ Ext.application({
             });
         };
 
-        runModel = function() {
+        runModel = function(h_map) {
             Ext.getCmp('b_run_model').setDisabled(true);
             sb.showBusy('Running simulation...'); // Set the status bar to show that something is processing:
 
             var in_userID = Ext.getCmp('userID').getValue().trim();
             var in_simID = Ext.getCmp('simID').getValue().trim();
-            var in_sessionID = Ext.getCmp('sessionID').getValue().trim();
+            var in_sessionID = Ext.getCmp('sessionID').getValue();
             var in_cost = Ext.getCmp('s_cost').getValue()/100;
             var in_co2 = Ext.getCmp('s_co2').getValue()/100;
             var in_timelimit = Ext.getCmp('timelimit').getValue().trim();
@@ -531,7 +774,9 @@ Ext.application({
                     current_network = obj;
 
                     sb.showBusy('Plotting...');
-                    plotMap(h_map,current_network);
+                    // markers_optimized = [];
+                    deleteMarkers(markers_optimized);
+                    plotMap(h_map,current_network,markers_optimized);
                     insertLegend(h_map,current_network);
                     updateIndicators(current_network);
 
@@ -564,25 +809,25 @@ Ext.application({
         };
 
         // var insertLegend = function (h_map) {
-        var insertLegend = function (h_map,current_network) {
+        var insertLegend = function (h_map,the_network) {
             var legend,
 				content = [],
                 elem,
                 radius = 5,
-                initial_network;
+                is_initial_network;
 
 			// Create the legend and display on the map
 			legend = document.createElement('div');
 			legend.id = 'legend';
 			content.push('<h3>Legend</h3>');
 
-            initial_network = ( current_network.msg.data.id !== undefined && current_network.msg.data.id === "initial_network" );
+            is_initial_network = ( the_network.msg.data.id !== undefined && the_network.msg.data.id === "initial_network" );
             elem = map_design_format.city.with_wastewater_treatment;
             content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShort + "</p>");
             elem = map_design_format.city.without_wastewater_treatment;
             content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShort + "</p>");
 
-            if ( initial_network ) {
+            if ( is_initial_network ) {
                 elem = map_design_format.desal.existing;
                 content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShort + "</p>");
                 elem = map_design_format.desal.candid;
@@ -592,7 +837,7 @@ Ext.application({
                 content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShorter + "</p>");
             }
 
-            if ( initial_network ) {
+            if ( is_initial_network ) {
                 elem = map_design_format.power.power;
                 content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShort + "</p>");
             } else {
@@ -600,7 +845,7 @@ Ext.application({
                 content.push("<p><svg height='10' width='10'><circle cx='"+radius+"' cy='"+radius+"' r='"+radius+"' stroke='"+elem.icon.strokeColor+"' stroke-width='"+elem.icon.strokeWeight+"' fill='"+elem.icon.fillColor+"' /></svg>  "+ elem.nameShorter + "</p>");
             }
 
-            if ( initial_network ) {
+            if ( is_initial_network ) {
                 elem = map_design_format.pipeline.existing;
                 content.push("<p><svg height='5' width='10'><rect height='5' width='10' fill='"+elem.strokeColor+"' /></svg>  "+ elem.name + "</p>");
                 elem = map_design_format.pipeline.candid;
@@ -771,22 +1016,25 @@ Ext.application({
         // Returns an object with the display check boxes states.
 		var getSelectedCheckboxes = function (id) {
 			var res = {};
-            var selected = Ext.getCmp('cb_display_group').getChecked();
+            var selected = Ext.getCmp(id).getChecked();
+            var sel;
 
 			for (var i = 0; i < selected.length; i++) {
-				if ( selected[i].checked )
-					res[selected[i].id.replace("cb_","")] = true;
+				if ( selected[i].checked ) {
+                    sel = selected[i].id.replace("cb_","");
+					res[ sel ] = true;
+                }
 			}
 
 			return res;
 		};
 
         // var createEdges = function (h_map,data) {
-		var createEdges = function (data) {
+		var createEdges = function (data,markers) {
 			var line = [];
 			var pipe;
 			var opts;
-			var selected = getSelectedCheckboxes( "output_selector" );
+			var selected = getSelectedCheckboxes( 'cb_display_group' );
 
 			for (var i = data.length - 1; i >= 0; i--) {
 				if ( !selected.all && !selected[ data[i][0] ] )
@@ -811,8 +1059,8 @@ Ext.application({
             }
         };
 
-        var createNodes = function (data) {
-            var selected = getSelectedCheckboxes( "output_selector" );
+        var createNodes = function (data,markers) {
+            var selected = getSelectedCheckboxes( 'cb_display_group' );
             var node;
             var opts;
 
@@ -843,36 +1091,36 @@ Ext.application({
 		};
 
         // Sets the map on all markers in the array.
-        function setAllMap(h_map) {
+        function setAllMap(h_map,markers) {
             for (var i = 0; i < markers.length; i++) {
                 markers[i].setMap(h_map);
             }
         }
 
         // Removes the markers from the map, but keeps them in the array.
-        function clearMarkers() {
-            setAllMap(null);
+        function clearMarkers(markers) {
+            setAllMap(null,markers);
         }
 
         // Deletes all markers in the array by removing references to them.
-        function deleteMarkers() {
-            clearMarkers();
+        function deleteMarkers(markers) {
+            clearMarkers(markers);
             markers = [];
         }
 
-		function plotMap(h_map,raw_data) {
+		function plotMap(h_map,raw_data,markers) {
 			var edges = raw_data.msg.data.outputs.edges;
 			var nodes = raw_data.msg.data.outputs.nodes;
 
             // Remove old markers and lines
-            deleteMarkers();
+            deleteMarkers(markers);
 
             // Create graph elements
-		    createEdges(edges);
-		    createNodes(nodes);
+		    createEdges(edges,markers);
+		    createNodes(nodes,markers);
 
             // Draw markers and lines on the map
-            setAllMap(h_map);
+            setAllMap(h_map,markers);
 		}
 
         var updateIndicators = function (data) {
@@ -884,6 +1132,17 @@ Ext.application({
             Ext.getCmp('kpi_potable').setValue( data.msg.data.outputs.indicators.potable );
             Ext.getCmp('kpi_totalLossWater').setValue( data.msg.data.outputs.indicators.totalLossWater );
             Ext.getCmp('kpi_electricity').setValue( data.msg.data.outputs.indicators.electricity );
+
+            // Update graph
+            records_costs = [];
+            records_costs.push({
+                ind: 'CAPEX', value: data.msg.data.outputs.indicators.CAPEX,
+            });
+            records_costs.push({
+                ind: 'OPEX', value: data.msg.data.outputs.indicators.OPEX,
+            });
+            //update the store with the data that we got
+            total_cost_store.loadData( records_costs );
         };
 
         // Generate a unique Simulation ID
@@ -894,8 +1153,9 @@ Ext.application({
 
 
         // load initial state or default data
-        var h_map = Ext.getCmp('googleMap').gmap;
-        showInitialNetwork(h_map);
+        // var h_map = Ext.getCmp('googleMap_initial').gmap;
+        // showInitialNetwork(h_map);
+        showInitialNetwork( Ext.getCmp('googleMap_initial').gmap );
 
 
 		//
