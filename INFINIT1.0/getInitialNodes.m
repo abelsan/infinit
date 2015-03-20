@@ -2,7 +2,18 @@
 % Inputs
 %   Set of Nodes: setNode
 % Outputs
-%   Nodes
+%       Nodes
+%   Format:
+%           node_type, 
+%           condition, 
+%           lat, 
+%           lon, 
+%           value, 
+%           0, 
+%           node_id, 
+%           node_name, 
+%           Region,
+
 
 % Programmer: Takuto Ishimatsu
 % Advisor: Olivier de Weck
@@ -57,8 +68,22 @@ for i = 1:nNode
 %                                                     'Marker','o','LineWidth',1,'MarkerEdgeColor','k','MarkerFaceColor','y',...
 %                                                     'MarkerSize',2*fix(setNode{n,7}(1)/stepSizePower)+minSize);
     end
+
+    capacity = setNode{n,7}(1);
     
-    out(count,:) = { setNode{n,4}(1), condition, lat, lon, value, 0};
+%   output format:
+%           node_type, 
+%           condition, 
+%           lat, 
+%           lon, 
+%           value, 
+%           node_capacity, 
+%           node_id, 
+%           node_name, 
+%           Region,
+
+%     out(count,:) = { setNode{n,4}(1), condition, lat, lon, value, capacity };
+    out(count,:) = { setNode{n,4}(1), condition, lat, lon, value, capacity, setNode{n,1}, setNode{n,2}, setNode{n,3} };
     count = count + 1;
 end
 

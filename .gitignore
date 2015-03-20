@@ -7,3 +7,5 @@ log.txt
 # backup files
 *.m~
 
+# lock files
+.~*\#

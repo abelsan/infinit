@@ -76,9 +76,10 @@ Ext.application({
         //     var h_map = Ext.getCmp('googleMap_initial').gmap;
         //     plotMap(h_map,current_network);
         // }
-        var fn_display_mode_changed = function (which,network,markers) {
-            if ( this.getValue() ){
-                Ext.getCmp('cb_all_map_'+which).setValue(false);
+        var fn_display_mode_changed = function (me,which,network,markers) {
+            if ( me.getValue() ){
+                // Ext.getCmp('cb_all_map_'+which).setValue(false);
+                Ext.getCmp('cb_all').setValue(false);
             }
 
             var h_map = Ext.getCmp('googleMap_'+which).gmap;
@@ -123,6 +124,20 @@ Ext.application({
         },{
         }];
 
+        var w_description = new Ext.create('Ext.window.Window', {
+            title: 'Description',
+            height: 500,
+            width: 500,
+            layout: 'fit',
+            scrollable: 'vertical',
+            closeAction: 'hide',
+            bodyPadding: 10,
+            loader: {
+                url: 'description.html',
+                autoLoad: true,
+            },
+        });
+
 
         // main panel
         var childPanel1 = Ext.create('Ext.panel.Panel', {
@@ -134,15 +149,17 @@ Ext.application({
             width: '100%',
             items: [{ // main north panel
                 region: 'north',
-                html: '<h1>KSA Water/Energy INFINT Model 1.0</h1>',
+                html: '<h1>KSA Water/Energy INFINIT Model 1.0</h1>',
                 style: {
                     'text-align': 'center',
                     marginBottom: '10px',
-                }
+                },
             }, { // main west panel
                 region: 'west',
+                title: 'Setup',
                 width: 250,
                 bodyPadding: 5,
+                collapsible: true,
                 items: [{
                     title: 'User info',
                     split: true,
@@ -286,7 +303,7 @@ Ext.application({
                             name: 'optimalityGap',
                             value: 0.03,
                             width: '100%',
-                        }]
+                        }],
                     }, {
                         xtype: 'button',
                         text: 'Run',
@@ -298,13 +315,42 @@ Ext.application({
                     }, {
                         xtype: 'statusbar',
                         id: 'sb_run_status',
-                        width: 220,
+                        // width: 220,
+                        width: 170,
                         statusAlign: 'right', // the magic config
                         // defaults to use when the status is cleared:
                         defaultText: 'Ready',
                         defaultIconCls: 'default-icon',
                         style: {
                             display: 'inline-block',
+                        },
+                    }],
+                }, {
+                    xtype: 'panel',
+                    id: 'p_description',
+                    title: 'Description',
+                    bodyPadding: 5,
+                    height: 85,
+                    split: true,
+                    frame: true,
+                    listeners: {
+                        click: {
+                            element: 'el', //bind to the underlying el property on the panel
+                            fn: function() {
+                                w_description.show();
+                            },
+                        },
+                    },
+                    items: [{
+                        xtype: 'box',
+                        loader: {
+                            url: 'description.html',
+                            autoLoad: true,
+                        },
+                        style: {
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
                         },
                     }],
                 }],
@@ -317,7 +363,7 @@ Ext.application({
                 items: [{ // center panel #1 -> google map + display modes
                     bodyPadding: 5,
                     items: [{
-                        title: 'Initial network',
+                        title: 'Initial network 2010',
                         itemId: 'centerregion_initial',
                         frame: 'true',
                         // width: 700,
@@ -343,7 +389,7 @@ Ext.application({
                         bodyPadding: 5,
                         items: [{
                             xtype: 'checkboxgroup',
-                            fieldLabel: 'Display Modes',
+                            fieldLabel: 'Layers',
                             id: 'cb_display_group',
                             name: 'cb_display_group',
                             columns: 5,
@@ -364,8 +410,10 @@ Ext.application({
 
                                     var h_map = Ext.getCmp('googleMap_initial').gmap;
                                     plotMap(h_map,initial_network,markers_initial);
-                                    h_map = Ext.getCmp('googleMap_optimized').gmap;
-                                    plotMap(h_map,current_network,markers_optimized);
+                                    if ( current_network.length !== 0 ) {
+                                        h_map = Ext.getCmp('googleMap_optimized').gmap;
+                                        plotMap(h_map,current_network,markers_optimized);
+                                    }
                                 }
                             }, {
                                 boxLabel: 'Pipelines',
@@ -373,8 +421,9 @@ Ext.application({
                                 name: 'cb_display',
                                 inputValue: '2',
                                 handler: function () {
-                                    fn_display_mode_changed('initial',initial_network,markers_initial);
-                                    fn_display_mode_changed('optimized',current_network,markers_optimized);
+                                    fn_display_mode_changed(this,'initial',initial_network,markers_initial);
+                                    if ( current_network.length !== 0 )
+                                        fn_display_mode_changed(this,'optimized',current_network,markers_optimized);
                                  },
                             }, {
                                 boxLabel: 'City',
@@ -382,8 +431,9 @@ Ext.application({
                                 name: 'cb_display',
                                 inputValue: '3',
                                 handler: function () {
-                                    fn_display_mode_changed('initial',initial_network,markers_initial);
-                                    fn_display_mode_changed('optimized',current_network,markers_optimized);
+                                    fn_display_mode_changed(this,'initial',initial_network,markers_initial);
+                                    if ( current_network.length !== 0 )
+                                        fn_display_mode_changed(this,'optimized',current_network,markers_optimized);
                                  },
                             }, {
                                 boxLabel: 'Power Plant',
@@ -391,8 +441,9 @@ Ext.application({
                                 name: 'cb_display',
                                 inputValue: '4',
                                 handler: function () {
-                                    fn_display_mode_changed('initial',initial_network,markers_initial);
-                                    fn_display_mode_changed('optimized',current_network,markers_optimized);
+                                    fn_display_mode_changed(this,'initial',initial_network,markers_initial);
+                                    if ( current_network.length !== 0 )
+                                        fn_display_mode_changed(this,'optimized',current_network,markers_optimized);
                                  },
                             }, {
                                 boxLabel: 'Desalination Plant',
@@ -400,8 +451,9 @@ Ext.application({
                                 name: 'cb_display',
                                 inputValue: '5',
                                 handler: function () {
-                                    fn_display_mode_changed('initial',initial_network,markers_initial);
-                                    fn_display_mode_changed('optimized',current_network,markers_optimized);
+                                    fn_display_mode_changed(this,'initial',initial_network,markers_initial);
+                                    if ( current_network.length !== 0 )
+                                        fn_display_mode_changed(this,'optimized',current_network,markers_optimized);
                                  },
                             }, {
                                 boxLabel: 'Legend',
@@ -410,12 +462,13 @@ Ext.application({
                                 inputValue: '6',
                                 checked: true,
                                 handler: function () {
+                                    var o_map = Ext.get('legend_map_optimized');
                                     if ( this.getValue() ) { // Show legend
                                         Ext.get('legend_map_initial').setStyle('display', 'block');
-                                        Ext.get('legend_map_optimized').setStyle('display', 'block');
+                                        if (o_map !== null) o_map.setStyle('display', 'block');
                                     } else { // Hide legend
                                         Ext.get('legend_map_initial').setStyle('display','none');
-                                        Ext.get('legend_map_optimized').setStyle('display','none');
+                                        if (o_map !== null) o_map.setStyle('display', 'none');
                                     }
                                 },
                             }],
@@ -424,9 +477,8 @@ Ext.application({
                 }, { // Optimized network map
                     bodyPadding: 5,
                     items: [{
-                        // bodyPadding: 5,
                         items: [{
-                            title: 'Optimized network',
+                            title: 'Optimized network 2030',
                             itemId: 'centerregion_optimized',
                             frame: 'true',
                             // width: 700,
@@ -534,20 +586,26 @@ Ext.application({
                     width: 300,
                     items: [{
                         defaultType: 'textfield',
+                        defaults: {
+                            labelWidth: 180,
+                            width: '100%',
+                        },
                         items: [{
                             fieldLabel: 'Optimization terminated due to',
                             id: 'OptiTermDueTo',
                             name: 'OptiTermDueTo',
                             readOnly: true,
                             value: 'Not started',
+                            labelWidth: 110,
                             width: '100%',
+                            // width: '100%',
                         }, {
                             fieldLabel: 'Total Cost (MUSD/year)',
                             id: 'kpi_cost',
                             name: 'TotalCost',
                             readOnly: true,
                             value: '0.0',
-                            labelWidth: '150',
+                            // labelWidth: '150',
                             // width: '100%',
                             // layout: 'fit',
                         }, {
@@ -557,7 +615,7 @@ Ext.application({
                             readOnly: true,
                             value: '0.0',
                             // width: '100% - 150',
-                            labelWidth: '150',
+                            // labelWidth: '150',
                             labelAlign: 'right',
                         }, {
                             fieldLabel: 'Total OPEX (MUSD/year)',
@@ -565,7 +623,7 @@ Ext.application({
                             name: 'TotalOPEX',
                             readOnly: true,
                             value: '0.0',
-                            labelWidth: '150',
+                            // labelWidth: '150',
                             // width: '90%',
                             labelAlign: 'right',
                         }, {
@@ -575,7 +633,7 @@ Ext.application({
                             readOnly: true,
                             value: '0.0',
                             // width: '100%',
-                            labelWidth: '150',
+                            // labelWidth: '150',
                         }, {
                             fieldLabel: 'Total Potable Water Production (MCM/year)',
                             id: 'kpi_potable',
@@ -583,7 +641,7 @@ Ext.application({
                             readOnly: true,
                             value: '0.0',
                             // width: '100%',
-                            labelWidth: '150',
+                            // labelWidth: '150',
                         }, {
                             fieldLabel: 'Total Water loss in Pipeline (%)',
                             id: 'kpi_totalLossWater',
@@ -591,7 +649,7 @@ Ext.application({
                             readOnly: true,
                             value: '0.0',
                             // width: '100%',
-                            labelWidth: '150',
+                            // labelWidth: '150',
                             labelAlign: 'right',
                         }, {
                             fieldLabel: 'Total Electricity Generation (GWh/year)',
@@ -600,7 +658,7 @@ Ext.application({
                             readOnly: true,
                             value: '0.0',
                             // width: '100%',
-                            labelWidth: '150',
+                            // labelWidth: '150',
                         }],
                     }],
                 }, {
@@ -690,7 +748,7 @@ Ext.application({
 
 		var map_handler = {"map":null,"options":null};
         var markers_initial = [];
-		var markers_optimized = [];7
+		var markers_optimized = [];
 
 		var domain_name = window.location.hostname;
 		var server_addr = domain_name + ':8080';
@@ -719,7 +777,7 @@ Ext.application({
 
                         sb.showBusy('Plotting...');
                         plotMap(h_map,initial_network,markers_initial);
-                        insertLegend(h_map,initial_network);
+                        insertLegend(h_map,initial_network,'map_initial');
 
                         sb.setStatus({
                             iconCls: 'x-status-valid',
@@ -774,10 +832,16 @@ Ext.application({
                     current_network = obj;
 
                     sb.showBusy('Plotting...');
+                    // Change 'panned' desal plants to 'existing'
+                    for (var i = current_network.msg.data.outputs.nodes.length - 1; i >= 0; i--) {
+                        var node = current_network.msg.data.outputs.nodes[i];
+                        if ( node[0] === 'desal' && node[1] === 'candid' )
+                            node[1] = 'existing';
+                    }
                     // markers_optimized = [];
-                    deleteMarkers(markers_optimized);
+//                     deleteMarkers(markers_optimized);
                     plotMap(h_map,current_network,markers_optimized);
-                    insertLegend(h_map,current_network);
+                    insertLegend(h_map,current_network,'map_optimized');
                     updateIndicators(current_network);
 
                     console.log('stdout: '+ current_network.msg.stdout);
@@ -809,7 +873,7 @@ Ext.application({
         };
 
         // var insertLegend = function (h_map) {
-        var insertLegend = function (h_map,the_network) {
+        var insertLegend = function (h_map,the_network,id) {
             var legend,
 				content = [],
                 elem,
@@ -818,7 +882,9 @@ Ext.application({
 
 			// Create the legend and display on the map
 			legend = document.createElement('div');
-			legend.id = 'legend';
+            // legend.id = 'legend';
+			legend.id = 'legend'+'_'+id;
+            legend.classList.add("legend");
 			content.push('<h3>Legend</h3>');
 
             is_initial_network = ( the_network.msg.data.id !== undefined && the_network.msg.data.id === "initial_network" );
@@ -934,6 +1000,7 @@ Ext.application({
                     'nameShorter': 'Desal plant',
                     'image':'images/drinkingwater_green.png',
                     geodesic: true, // Do not change
+                    title: '',
                     icon: {
                         path: google.maps.SymbolPath.CIRCLE,
                         strokeColor: '#000000',
@@ -949,6 +1016,7 @@ Ext.application({
                     'nameShort': 'Desal plant (planned)',
                     'image':'images/drinkingwater_red.png',
                     geodesic: true, // Do not change
+                    title: '',
                     icon: {
                         path: google.maps.SymbolPath.CIRCLE,
                         strokeColor: '#000000',
@@ -967,6 +1035,7 @@ Ext.application({
                     'nameShorter': 'Power plant',
                     'image':'images/solarenergy_blue.png',
                     geodesic: true, // Do not change
+                    title: '',
                     icon: {
                         path: google.maps.SymbolPath.CIRCLE,
                         strokeColor: '#000000',
@@ -985,6 +1054,7 @@ Ext.application({
                     'nameShort': 'City w/ WWT',
                     'image':'images/bigcity.png',
                     geodesic: true, // Do not change
+                    title: '',
                     icon: {
                         path: google.maps.SymbolPath.CIRCLE,
                         strokeColor: '#000000',
@@ -1000,6 +1070,7 @@ Ext.application({
                     'nameShort': 'City w/o WWT',
                     'image':'images/ghosttown.png',
                     geodesic: true, // Do not change
+                    title: '',
                     icon: {
                         path: google.maps.SymbolPath.CIRCLE,
                         strokeColor: '#000000',
@@ -1053,12 +1124,30 @@ Ext.application({
                 // Create and draw the line
                 pipe = new google.maps.Polyline( opts );
 
+                pipe.node_type = data[i][0];
+
                 markers.push(pipe);
 
                 line.length = 0;
             }
         };
 
+        // Inputs format:
+        //      'data':
+        //          [0] node_type,
+        //          [1] condition,
+        //          [2] lat,
+        //          [3] lon,
+        //          [4] value,
+        //          [5] node_capacity,
+        //          [6] node_id,
+        //          [7] node_name,
+        //          [8] Region,
+        // Outputs format:
+        //      'markers':
+        //          node_type,
+        //          node_name,
+        //          node_capacity,
         var createNodes = function (data,markers) {
             var selected = getSelectedCheckboxes( 'cb_display_group' );
             var node;
@@ -1077,18 +1166,115 @@ Ext.application({
                     parseFloat(data[i][3]) );
 
                 opts.position = pos;
-                // opts.radius = 10000;
-                opts.icon.scale = data[i][4]; // Set the options variable field.
-// console.log(opts.icon.scale);
-// if (opts.icon.scale >= 20)
-// console.log(data[i]);
+                opts.icon.scale = data[i][4]; // Marker size
+                opts.title = data[i][7]; // Node title
 
                 // Add the circle for this city to the map.
 				node = new google.maps.Marker( opts );
 
+                node.node_type = data[i][0];
+                node.node_name = data[i][7];
+                node.node_capacity = data[i][5];
+
 				markers.push( node );
 			}
 		};
+
+
+        var info_window = Ext.create('Ext.window.Window', {
+            title: 'Hello',
+            height: 200,
+            width: 400,
+            // layout: 'fit',
+            closeAction: 'hide',
+            // items: [{  // Let's put an empty grid in just to illustrate fit layout
+                // xtype: 'box',
+                border: true,
+                html: 'Hola mundo.',
+            // }],
+        });
+        function showNodeInfoWindow(i) {
+            return function() {
+                info_window.html += 'i:' + i;
+                info_window.show();
+            };
+        }
+        var createNodeInfoWindows = function (data,h_map,markers) {
+            function infoWindowFn(h_map,marker,i) {
+                return function () {
+                    var node_type = marker.node_type;
+                    var node_name = marker.node_name;
+                    var node_capacity = marker.node_capacity;
+                    var node_population = marker.node_population;
+                    var node_water_demand = marker.node_water_demand;
+
+                    var contentString = ''+
+                    '<div id="content">'+
+                        '<div id="siteNotice">'+
+                        '</div>'+
+                        '<h1 id="firstHeading" class="firstHeading">'+
+                            // 'Uluru'+
+                            node_name+
+                        '</h1>'+
+                        '<div id="bodyContent">';
+
+                    if (node_type === 'power' ) {
+                        contentString += ''+
+                            '<p>'+
+                                '<b>Capacity</b> '+
+                                node_capacity+
+                                ' MW'+
+                            '</p>';
+                    } else if ( node_type === 'desal' ) {
+                        contentString += ''+
+                            '<p>'+
+                                '<b>Capacity</b> '+
+                                node_capacity+
+                                ' m^3/day'+
+                            '</p>';
+                    } else if ( node_type === 'city' ) {
+                        contentString += ''+
+                            '<p>'+
+                                '<b>Population</b> '+
+                                node_population+
+                                ' habitants'+
+                            '</p>'+
+                            '<p>'+
+                                '<b>Water demand</b> '+
+                                node_water_demand+
+                                ' m^3/day'+
+                            '</p>';
+                    }
+
+                    contentString += ''+
+                        '</div>'+
+                    '</div>';
+
+                    var infowindow = new google.maps.InfoWindow({
+                        content: contentString
+                    });
+
+                    infowindow.open( h_map, marker );
+                };
+            }
+
+            for (var i = 0; i < markers.length; i++) {
+                if ( markers[i].node_type === 'pipeline' )
+                    continue;
+
+                google.maps.event.addListener(
+                    markers[i],
+                    'click',
+                    infoWindowFn(h_map,markers[i],i)
+                    // showNodeInfoWindow(i)
+                );
+                // Set mouseover event for each feature.
+                // map.data.addListener('mouseover', function(event) {
+                //     document.getElementById('info-box').textContent =
+                //         event.feature.getProperty('letter');
+                // });
+            }
+        };
 
         // Sets the map on all markers in the array.
         function setAllMap(h_map,markers) {
@@ -1105,7 +1291,8 @@ Ext.application({
         // Deletes all markers in the array by removing references to them.
         function deleteMarkers(markers) {
             clearMarkers(markers);
-            markers = [];
+            // markers = []; // Does not empty the array.
+            while (markers.pop()); // This does.
         }
 
 		function plotMap(h_map,raw_data,markers) {
@@ -1117,10 +1304,13 @@ Ext.application({
 
             // Create graph elements
 		    createEdges(edges,markers);
-		    createNodes(nodes,markers);
+            createNodes(nodes,markers);
 
             // Draw markers and lines on the map
             setAllMap(h_map,markers);
+
+            // Create Info windows for nodes
+            createNodeInfoWindows(nodes, h_map, markers);
 		}
 
         var updateIndicators = function (data) {

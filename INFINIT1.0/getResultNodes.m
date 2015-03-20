@@ -45,9 +45,11 @@ for i = 1:nNode
 %                                                     'MarkerSize',2*fix(setNode{n,7}(1)/stepSizePopulation)+minSize);
         end
         value = 2*fix(setNode{n,7}(1)/stepSizePopulation)+minSize;
+        capacity = setNode{n,7}(1);        
     elseif strcmp(setNode{n,4}(1),'desal') == 1 % desal plants -> blue
         condition = setNode{n,4}(2); % 'existing' or 'candid'
         value = 2*fix(xyz{e}(index(flow,'feed water'),1)/stepSizeWater)+minSize;
+        capacity = xyz{e}(index(flow,'feed water'),1);
 
 %         if strcmp(setNode{n,4}(2),'existing') == 1
 %             geoshow(setNode{n,5}(1),setNode{n,5}(2),'DisplayType','multipoint',...
@@ -61,12 +63,27 @@ for i = 1:nNode
     elseif strcmp(setNode{n,4}(1),'power') == 1 % power plants -> yellow
         condition = setNode{n,4}(1);
         value = 2*fix(xyz{e}(index(flow,'power resource'),1)/10^3/24/stepSizePower)+minSize;
+        capacity = xyz{e}(index(flow,'power resource'),1)/10^3/24;
+        
 %         geoshow(setNode{n,5}(1),setNode{n,5}(2),'DisplayType','multipoint',...
 %                                                 'Marker','o','LineWidth',1,'MarkerEdgeColor','k','MarkerFaceColor','y',...
 %                                                 'MarkerSize',2*fix(xyz{e}(index(flow,'power resource'),1)/10^3/24/stepSizePower)+minSize);
     end
+
     
-    out(count,:) = { setNode{n,4}(1), condition, lat, lon, value, 0};
+%   output format:
+%           node_type, 
+%           condition, 
+%           lat, 
+%           lon, 
+%           value, 
+%           node_capacity, 
+%           node_id, 
+%           node_name, 
+%           Region,
+
+%     out(count,:) = { setNode{n,4}(1), condition, lat, lon, value, capacity };
+    out(count,:) = { setNode{n,4}(1), condition, lat, lon, value, capacity, setNode{n,1}, setNode{n,2}, setNode{n,3} };
     count = count + 1;
 end
 
