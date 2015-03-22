@@ -26,15 +26,16 @@ Ext.Loader.setConfig({
         'Ext.draw': './js/ext/packages/sencha-charts/src/draw',
     },
 });
-// Ext.Loader.setPath('Ext', 'js/ext/src');
-// Ext.Loader.setPath('Ext.chart', 'js/ext/packages/sencha-charts/src/chart');
-// Ext.Loader.setPath('Ext.draw', 'js/ext/packages/sencha-charts/src/draw');
 Ext.require([
     'Ext.ux.GMapPanel', // Alternative: https://gist.github.com/minibikini/1160378
     'Ext.ux.statusbar.StatusBar',
     'Ext.form.field.ComboBox',
+    // 'Ext.form.Panel',
+    'Ext.form.FieldContainer',
     'Ext.chart.series.Pie',
     'Ext.chart.series.Polar',
+    // 'Ext.draw.sprite.Text',
+    'Ext.tip.ToolTip',
 ]);
 
 Ext.application({
@@ -138,6 +139,13 @@ Ext.application({
             },
         });
 
+        // var tip = Ext.create('Ext.tip.ToolTip', {
+        //     // xtype: 'tooltip',
+        //     target: 't_description',
+        //     html: 'Press this button to clear the form',
+        //     // Moving within the row should not hide the tip.
+        //     trackMouse: true,
+        // });
 
         // main panel
         var childPanel1 = Ext.create('Ext.panel.Panel', {
@@ -149,11 +157,109 @@ Ext.application({
             width: '100%',
             items: [{ // main north panel
                 region: 'north',
-                html: '<h1>KSA Water/Energy INFINIT Model 1.0</h1>',
-                style: {
-                    'text-align': 'center',
-                    marginBottom: '10px',
+                // style: {
+                //     textAlign: 'center',
+                //     marginBottom: '10px',
+                // },
+                // defaults: {
+                    // width: 100,
+                    // height: 100,
+                // },
+                // layout: 'hbox',
+                // layout: 'column',
+                // layout: 'center',
+                // requires: [
+                //     'Ext.layout.container.Border'
+                // ],
+                // xtype: 'panel',
+                // layout: 'border',
+                // bodyBorder: false,
+                // layoutConfig: {
+                layout: {
+                    type: 'hbox',
+                    padding: 5,
+                    pack:'center',
+                    align:'middle',
                 },
+                items: [{
+                    width: 50,
+                    // xtype:'splitter',
+                }, {
+                    xtype: 'image',
+                    id: 'left_image',
+                    src: 'images/cces_ssdn_logo.gif',
+                    height: 100,
+                    // width: 100,
+                    // region: 'west',
+                    // flex: 1,
+                    // columnWidth: 0.3,
+                    // layout: 'center',
+                }, {
+                    // width: 100,
+                    flex: 1,
+                    xtype:'splitter',
+                }, {
+                    layout: {
+                        type: 'vbox',
+                        padding: 5,
+                        pack:'center',
+                        align:'middle',
+                    },
+
+                    items: [{
+                        html: '<h1>KSA Water/Energy INFINIT Model 1.0</h1>',
+                        // text: 'KSA Water/Energy INFINIT Model 1.0',
+                        // region: 'center',
+                        // flex: 1,
+                        // layout: 'fit',
+                        // layout: 'center',
+                    }, {
+
+                        xtype: 'label',
+                        // forId: 'myFieldId',
+                        text: 'Description',
+
+                        //     html: 'Description',
+                        // html: 'Press this button to clear the form',
+                        style: {
+                            color: 'LightSteelBlue' ,
+                            // color: '#00BFFF', // 'DeepSkyBlue',
+                        },
+                        shadow: true,
+                        listeners: {
+                            click: {
+                                element: 'el', //bind to the underlying el property on the panel
+                                fn: function() {
+                                    w_description.show();
+                                },
+                            },
+                            afterrender: function(me) {
+                                // Register the new tip with an element's ID
+                                Ext.tip.QuickTipManager.register({
+                                    target: me.getId(), // Target button's ID
+                                    title : 'Click me!,',  // QuickTip Header
+                                    text  : 'to show the model description.' // Tip content
+                                });
+                            },
+                        },
+                    }],
+                }, {
+                    // width: 100,
+                    flex: 1,
+                    xtype:'splitter',
+                }, {
+                    xtype: 'image',
+                    id: 'right_image',
+                    src: 'images/cces2_0.png',
+                    height: 100,
+                    // region: 'east',
+                    // flex: 1,
+                    // columnWidth: 0.3,
+                    // layout: 'center',
+                }, {
+                    width: 50,
+                    // xtype:'splitter',
+                }],
             }, { // main west panel
                 region: 'west',
                 title: 'Setup',
@@ -257,38 +363,108 @@ Ext.application({
                     items: [{
                         html: '<p>Optimize Network Flow under:</p>',
                     }, {
-                        // TODO:
-                        //      Append the current slider value
-                        //      at the end of the label.
-                        //      http://jsfiddle.net/molecule/WdjZn/
-                        //      http://www.sencha.com/forum/showthread.php?184084-Display-slider-value
-                        xtype: 'sliderfield',
-                        fieldLabel: 'Cost (%)',
-                        // labelStyle: 'color:gray; margin-bottom:0px;',
-                        // afterLabelTextTpl: this.getValue()+'%',
-                        id: 's_cost',
-                        width: '100%',
-                        value: 100,
-                        minValue: 0,
-                        maxValue: 100,
-                        listeners: {
-                            change: function( slider, newValue, thumb, eOpts ) {
-                                Ext.getCmp('s_co2').setValue(100 - slider.getValue());
+                    //     // TODO:
+                    //     //      Append the current slider value
+                    //     //      at the end of the label.
+                    //     //      http://jsfiddle.net/molecule/WdjZn/
+                    //     //      http://www.sencha.com/forum/showthread.php?184084-Display-slider-value
+                    //     xtype: 'sliderfield',
+                    //     fieldLabel: 'Cost (%)',
+                    //     // labelStyle: 'color:gray; margin-bottom:0px;',
+                    //     // afterLabelTextTpl: this.getValue()+'%',
+                    //     id: 's_cost',
+                    //     width: '100%',
+                    //     value: 100,
+                    //     minValue: 0,
+                    //     maxValue: 100,
+                    //     listeners: {
+                    //         change: function( slider, newValue, thumb, eOpts ) {
+                    //             Ext.getCmp('s_co2').setValue(100 - slider.getValue());
+                    //         },
+                    //     },
+                    // }, {
+                    //     xtype: 'sliderfield',
+                    //     fieldLabel: 'CO2 (%)',
+                    //     id: 's_co2',
+                    //     width: '100%',
+                    //     value: 0,
+                    //     minValue: 0,
+                    //     maxValue: 100,
+                    //     listeners: {
+                    //         change: function( slider, newValue, thumb, eOpts ) {
+                    //             Ext.getCmp('s_cost').setValue(100 - slider.getValue());
+                    //         },
+                    //     },
+
+                        // xtype: 'panel',
+                        // title: 'title',
+                        viewModel: {
+                            data: {
+                                cost: 100,
+                                co2: 0,
                             },
                         },
-                    }, {
-                        xtype: 'sliderfield',
-                        fieldLabel: 'CO2 (%)',
-                        id: 's_co2',
-                        width: '100%',
-                        value: 0,
-                        minValue: 0,
-                        maxValue: 100,
-                        listeners: {
-                            change: function( slider, newValue, thumb, eOpts ) {
-                                Ext.getCmp('s_cost').setValue(100 - slider.getValue());
+                        layout: 'anchor',
+                        defaultType: 'fieldcontainer',
+                        defaults: {
+                            anchor: '0',
+                            labelWidth: 55,
+                            layout: {
+                                type: 'hbox',
+                                align: 'center',
                             },
                         },
+                        items: [{
+                            fieldLabel: 'Cost (%)',
+                            defaults: {
+                                maxValue: 100,
+                                minValue: 0
+                            },
+                            items: [{
+                                xtype: 'numberfield',
+                                width: 60,
+                                bind: '{cost}',
+                                margin: '0 10 0 0',
+                            }, {
+                                id: 's_cost',
+                                name: 's_cost',
+                                xtype: 'sliderfield',
+                                flex: 1,
+                                bind: '{cost}',
+                                publishOnComplete: false,
+                                listeners: {
+                                    change: function( slider, newValue, thumb, eOpts ) {
+                                        Ext.getCmp('s_co2').setValue(100 - slider.getValue());
+                                    },
+                                },
+                            }],
+                        },{
+                            fieldLabel: 'CO2 (%)',
+                            defaults: {
+                                maxValue: 100,
+                                minValue: 0
+                            },
+                            items: [{
+                                xtype: 'numberfield',
+                                width: 60,
+                                bind: '{co2}',
+                                margin: '0 10 0 0',
+                            }, {
+                                id: 's_co2',
+                                name: 's_co2',
+                                xtype: 'sliderfield',
+                                flex: 1,
+                                bind: '{co2}',
+                                publishOnComplete: false,
+                                listeners: {
+                                    change: function( slider, newValue, thumb, eOpts ) {
+                                        Ext.getCmp('s_cost').setValue(100 - slider.getValue());
+                                    },
+                                },
+                            }],
+                        }],
+
+
                     }, {
                         defaultType: 'textfield',
                         items: [{
@@ -325,34 +501,34 @@ Ext.application({
                             display: 'inline-block',
                         },
                     }],
-                }, {
-                    xtype: 'panel',
-                    id: 'p_description',
-                    title: 'Description',
-                    bodyPadding: 5,
-                    height: 85,
-                    split: true,
-                    frame: true,
-                    listeners: {
-                        click: {
-                            element: 'el', //bind to the underlying el property on the panel
-                            fn: function() {
-                                w_description.show();
-                            },
-                        },
-                    },
-                    items: [{
-                        xtype: 'box',
-                        loader: {
-                            url: 'description.html',
-                            autoLoad: true,
-                        },
-                        style: {
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                        },
-                    }],
+                // }, {
+                //     xtype: 'panel',
+                //     id: 'p_description',
+                //     title: 'Description',
+                //     bodyPadding: 5,
+                //     height: 85,
+                //     split: true,
+                //     frame: true,
+                //     listeners: {
+                //         click: {
+                //             element: 'el', //bind to the underlying el property on the panel
+                //             fn: function() {
+                //                 w_description.show();
+                //             },
+                //         },
+                //     },
+                //     items: [{
+                //         xtype: 'box',
+                //         loader: {
+                //             url: 'description.html',
+                //             autoLoad: true,
+                //         },
+                //         style: {
+                //             overflow: 'hidden',
+                //             textOverflow: 'ellipsis',
+                //             whiteSpace: 'nowrap',
+                //         },
+                //     }],
                 }],
             }, { // main center panel
                 // itemId: 'centerregion',
@@ -360,10 +536,20 @@ Ext.application({
                 // bodyPadding: 5,
                 // xtype:'container',
                 layout: 'hbox',
+                viewModel: {
+                    data: {
+                        zoom: 5,
+                        center_lat: 100,
+                        center_lng: 150,
+                    },
+                },
                 items: [{ // center panel #1 -> google map + display modes
                     bodyPadding: 5,
                     items: [{
                         title: 'Initial network 2010',
+                        // bind: {
+                        //     title: 'Zoom: {zoom}',
+                        // },
                         itemId: 'centerregion_initial',
                         frame: 'true',
                         // width: 700,
@@ -378,9 +564,13 @@ Ext.application({
                                 lat: 24.7,
                                 lng: 46.7,
                             },
+                            // zoomLevel: 5,
                             // mapConfOpts: ['enableScrollWheelZoom','enableDoubleClickZoom','enableDragging'],
                             mapOptions: {
                                 zoom: 5,
+                                // bind: {
+                                //     zoom: '{zoom}',
+                                // },
                                 mapTypeId: google.maps.MapTypeId.ROADMAP,
                                 styles: original_map_style,
                             },
@@ -496,6 +686,9 @@ Ext.application({
                                 // mapConfOpts: ['enableScrollWheelZoom','enableDoubleClickZoom','enableDragging'],
                                 mapOptions: {
                                     zoom: 5,
+                                    // bind: {
+                                    //     zoom: '{zoom}',
+                                    // },
                                     mapTypeId: google.maps.MapTypeId.ROADMAP,
                                     styles: original_map_style,
                                 },
