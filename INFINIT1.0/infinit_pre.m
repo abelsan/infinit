@@ -204,7 +204,7 @@ handles.fx = handles.fall'*x;
 handles.xyz = splitvw(x,handles.v,handles.w,handles.vw,handles.E);
 
 if output.cplexstatus == 102
-    handles.termination{handles.i} = ['Optimality Gap of ' num2str(options.parameter2009) '%'];
+    handles.termination{handles.i} = ['Optimality Gap of ' num2str(options.parameter2009) ]; % '%'
     disp(handles.termination{handles.i});
 elseif output.cplexstatus == 107
     handles.termination{handles.i} = ['Time Limit of ' num2str(options.timelimit) ' sec'];

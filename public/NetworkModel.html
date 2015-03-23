@@ -9,7 +9,8 @@
         <script type="text/javascript" src="js/ext/packages/ext-theme-neptune/build/ext-theme-neptune.js"></script>
         <script type="text/javascript" src="js/ext/packages/sencha-charts/build/sencha-charts-debug.js"></script>
         <link rel="stylesheet" type="text/css" href="js/ext/packages/sencha-charts/build/neptune/resources/sencha-charts-all.css" />
-		<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=true"></script>
+        <!-- <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=true"></script> -->
+		<script src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script>
         <script src="js/UUID.js/dist/uuid.core.js">// If you only need UUID.generate() method </script>
 
 
@@ -139,14 +140,6 @@ Ext.application({
             },
         });
 
-        // var tip = Ext.create('Ext.tip.ToolTip', {
-        //     // xtype: 'tooltip',
-        //     target: 't_description',
-        //     html: 'Press this button to clear the form',
-        //     // Moving within the row should not hide the tip.
-        //     trackMouse: true,
-        // });
-
         // main panel
         var childPanel1 = Ext.create('Ext.panel.Panel', {
             extend: 'Ext.container.Viewport',
@@ -198,6 +191,9 @@ Ext.application({
                     // width: 100,
                     flex: 1,
                     xtype:'splitter',
+                    style: {
+                        display: 'none',
+                    },
                 }, {
                     layout: {
                         type: 'vbox',
@@ -222,9 +218,23 @@ Ext.application({
                         //     html: 'Description',
                         // html: 'Press this button to clear the form',
                         style: {
-                            color: 'LightSteelBlue' ,
-                            // color: '#00BFFF', // 'DeepSkyBlue',
+                            // color: 'LightSteelBlue' ,
+
+                            color: 'white' ,
+                            backgroundColor: 'LightSteelBlue', // 'DeepSkyBlue',
+                            border: '2px solid',
+                            borderRadius: '25px',
+                            padding: '5px',
+                            // -webkit-transition: width 2s, /* For Safari 3.1 to 6.0 */
+                            // transition: 'width 2s',
                         },
+                        overCls: '.description',
+                        // animate: {
+                        //    duration: 100,
+                        //     to: {
+                        //         opacity: 0
+                        //     }
+                        // },
                         shadow: true,
                         listeners: {
                             click: {
@@ -240,6 +250,15 @@ Ext.application({
                                     title : 'Click me!,',  // QuickTip Header
                                     text  : 'to show the model description.' // Tip content
                                 });
+
+                                // me.el.on('click', function() {
+                                //     me.animate({
+                                //         duration: 500,
+                                //         to: {
+                                //             opacity: 0,
+                                //         },
+                                //     });
+                                // });
                             },
                         },
                     }],
@@ -247,6 +266,9 @@ Ext.application({
                     // width: 100,
                     flex: 1,
                     xtype:'splitter',
+                    style: {
+                        display: 'none',
+                    },
                 }, {
                     xtype: 'image',
                     id: 'right_image',
@@ -266,11 +288,12 @@ Ext.application({
                 width: 250,
                 bodyPadding: 5,
                 collapsible: true,
+                frame: true,
                 items: [{
                     title: 'User info',
                     split: true,
                     bodyPadding: 5,
-                    frame: true,
+                    // frame: true,
                     items: [{
                         xtype: 'form',
                         // defaultType: 'textfield',
@@ -317,7 +340,7 @@ Ext.application({
                     title: 'Step 1: Database ',
                     split: true,
                     bodyPadding: 5,
-                    frame: true,
+                    // frame: true,
                     items: [{
                         xtype      : 'radiogroup',
                         fieldLabel : 'Use database',
@@ -359,43 +382,10 @@ Ext.application({
                     title: 'Step 2: Optimization ',
                     split: true,
                     bodyPadding: 5,
-                    frame: true,
+                    // frame: true,
                     items: [{
                         html: '<p>Optimize Network Flow under:</p>',
                     }, {
-                    //     // TODO:
-                    //     //      Append the current slider value
-                    //     //      at the end of the label.
-                    //     //      http://jsfiddle.net/molecule/WdjZn/
-                    //     //      http://www.sencha.com/forum/showthread.php?184084-Display-slider-value
-                    //     xtype: 'sliderfield',
-                    //     fieldLabel: 'Cost (%)',
-                    //     // labelStyle: 'color:gray; margin-bottom:0px;',
-                    //     // afterLabelTextTpl: this.getValue()+'%',
-                    //     id: 's_cost',
-                    //     width: '100%',
-                    //     value: 100,
-                    //     minValue: 0,
-                    //     maxValue: 100,
-                    //     listeners: {
-                    //         change: function( slider, newValue, thumb, eOpts ) {
-                    //             Ext.getCmp('s_co2').setValue(100 - slider.getValue());
-                    //         },
-                    //     },
-                    // }, {
-                    //     xtype: 'sliderfield',
-                    //     fieldLabel: 'CO2 (%)',
-                    //     id: 's_co2',
-                    //     width: '100%',
-                    //     value: 0,
-                    //     minValue: 0,
-                    //     maxValue: 100,
-                    //     listeners: {
-                    //         change: function( slider, newValue, thumb, eOpts ) {
-                    //             Ext.getCmp('s_cost').setValue(100 - slider.getValue());
-                    //         },
-                    //     },
-
                         // xtype: 'panel',
                         // title: 'title',
                         viewModel: {
@@ -501,59 +491,40 @@ Ext.application({
                             display: 'inline-block',
                         },
                     }],
-                // }, {
-                //     xtype: 'panel',
-                //     id: 'p_description',
-                //     title: 'Description',
-                //     bodyPadding: 5,
-                //     height: 85,
-                //     split: true,
-                //     frame: true,
-                //     listeners: {
-                //         click: {
-                //             element: 'el', //bind to the underlying el property on the panel
-                //             fn: function() {
-                //                 w_description.show();
-                //             },
-                //         },
-                //     },
-                //     items: [{
-                //         xtype: 'box',
-                //         loader: {
-                //             url: 'description.html',
-                //             autoLoad: true,
-                //         },
-                //         style: {
-                //             overflow: 'hidden',
-                //             textOverflow: 'ellipsis',
-                //             whiteSpace: 'nowrap',
-                //         },
-                //     }],
                 }],
             }, { // main center panel
-                // itemId: 'centerregion',
                 region: 'center',
-                // bodyPadding: 5,
-                // xtype:'container',
-                layout: 'hbox',
-                viewModel: {
-                    data: {
-                        zoom: 5,
-                        center_lat: 100,
-                        center_lng: 150,
-                    },
+                // layout: 'hbox',
+                layout: {
+                    type: 'hbox',
+                    align: 'stretch',
+                    pack: 'start',
+                    // padding: 5,
                 },
+                // layout: 'fit',
+                // layout: 'anchor',
+                // width: '100%',
+                // viewModel: {
+                //     data: {
+                //         zoom: 5,
+                //         center_lat: 100,
+                //         center_lng: 150,
+                //     },
+                // },
+                bodyPadding: 5,
                 items: [{ // center panel #1 -> google map + display modes
-                    bodyPadding: 5,
+                    // bodyPadding: 5,
+                    width: '50%',
                     items: [{
                         title: 'Initial network 2010',
                         // bind: {
-                        //     title: 'Zoom: {zoom}',
+                        //     title: 'Zoom: {zoom:number}',
                         // },
                         itemId: 'centerregion_initial',
                         frame: 'true',
                         // width: 700,
-                        width: 600,
+                        // width: 600,
+                        minWidth: 400,
                         height: 550,
                         layout:'fit',
                         items: [{
@@ -563,19 +534,23 @@ Ext.application({
                             center: {
                                 lat: 24.7,
                                 lng: 46.7,
+                                // bind: {
+                                //     lat: '{center_lat}',
+                                //     lng: '{center_lng}',
+                                // },
                             },
-                            // zoomLevel: 5,
                             // mapConfOpts: ['enableScrollWheelZoom','enableDoubleClickZoom','enableDragging'],
                             mapOptions: {
                                 zoom: 5,
                                 // bind: {
-                                //     zoom: '{zoom}',
+                                //     zoom: '{zoom:number}',
                                 // },
                                 mapTypeId: google.maps.MapTypeId.ROADMAP,
                                 styles: original_map_style,
+                                disableDefaultUI: true,
                             },
                         }],
-                    }, {
+                    }, { // Layer selector
                         bodyPadding: 5,
                         items: [{
                             xtype: 'checkboxgroup',
@@ -664,15 +639,20 @@ Ext.application({
                             }],
                         }],
                     }],
+                // }, {
+                //     xtype: 'splitter',
+                    // width: 5,
                 }, { // Optimized network map
-                    bodyPadding: 5,
+                    // bodyPadding: 5,
+                    width: '50%',
                     items: [{
-                        items: [{
+                        // items: [{
                             title: 'Optimized network 2030',
                             itemId: 'centerregion_optimized',
                             frame: 'true',
                             // width: 700,
-                            width: 600,
+                            // width: 600,
+                            minWidth: 400,
                             height: 550,
                             layout:'fit',
                             items: [{
@@ -691,92 +671,30 @@ Ext.application({
                                     // },
                                     mapTypeId: google.maps.MapTypeId.ROADMAP,
                                     styles: original_map_style,
+                                    disableDefaultUI: true,
                                 },
                             }],
-                        }],
-                    }, {
-                        // bodyPadding: 5,
-                        // items: [{
-                        //     xtype: 'checkboxgroup',
-                        //     fieldLabel: 'Display Modes',
-                        //     id: 'cb_display_group_map_optimized',
-                        //     name: 'cb_display_group_map_optimized',
-                        //     columns: 5,
-                        //     bodyPadding: 5,
-                        //     items: [{
-                        //         boxLabel: 'All ',
-                        //         id: 'cb_all_map_optimized',
-                        //         name: 'cb_display_map_optimized',
-                        //         inputValue: '1',
-                        //         checked: true,
-                        //         handler: function () {
-                        //             if ( this.getValue() ){
-                        //                 Ext.getCmp('cb_pipeline_map_optimized').setValue(false);
-                        //                 Ext.getCmp('cb_city_map_optimized').setValue(false);
-                        //                 Ext.getCmp('cb_power_map_optimized').setValue(false);
-                        //                 Ext.getCmp('cb_desal_map_optimized').setValue(false);
-                        //             }
-
-                        //             var h_map = Ext.getCmp('googleMap_optimized').gmap;
-                        //             plotMap(h_map,current_network);
-                        //         }
-                        //     }, {
-                        //         boxLabel: 'Pipelines',
-                        //         id: 'cb_pipeline_map_optimized',
-                        //         name: 'cb_display_map_optimized',
-                        //         inputValue: '2',
-                        //         handler: function () { fn_display_mode_changed('optimized'); },
-                        //     }, {
-                        //         boxLabel: 'City',
-                        //         id: 'cb_city_map_optimized',
-                        //         name: 'cb_display_map_optimized',
-                        //         inputValue: '3',
-                        //         handler: function () { fn_display_mode_changed('optimized'); },
-                        //     }, {
-                        //         boxLabel: 'Power Plant',
-                        //         id: 'cb_power_map_optimized',
-                        //         name: 'cb_display_map_optimized',
-                        //         inputValue: '4',
-                        //         handler: function () { fn_display_mode_changed('optimized'); },
-                        //     }, {
-                        //         boxLabel: 'Desalination Plant',
-                        //         id: 'cb_desal_map_optimized',
-                        //         name: 'cb_display_map_optimized',
-                        //         inputValue: '5',
-                        //         handler: function () { fn_display_mode_changed('optimized'); },
-                        //     }, {
-                        //         boxLabel: 'Legend',
-                        //         id: 'cb_legend_map_optimized',
-                        //         name: 'cb_display_map_optimized',
-                        //         inputValue: '6',
-                        //         checked: true,
-                        //         handler: function () {
-                        //             if ( this.getValue() ) { // Show legend
-                        //                 Ext.get('legend_map_optimized').setStyle('display', 'block');
-                        //             } else { // Hide legend
-                        //                 Ext.get('legend_map_optimized').setStyle('display','none');
-                        //             }
-                        //         },
-                        //     }],
                         // }],
                     }],
-                    // }],
                 }],
             }, { // main East panel
                 region: 'east',
+                title: 'Results',
                 // width: 300,
                 width: 300,
                 // width: '100%',
                 bodyPadding: 5,
+                collapsible: true,
+                frame: true,
                 items: [{
                     // east panel #1 shows results
                     // title: 'Results',
                     title: 'KPIs',
                     split: false,
                     bodyPadding: 5,
-                    frame: true,
+                    // frame: true,
                     collapsible: true,
-                    width: 300,
+                    // width: 300,
                     items: [{
                         defaultType: 'textfield',
                         defaults: {
@@ -859,12 +777,11 @@ Ext.application({
                     xtype: 'panel',
                     // split: true,
                     bodyPadding: 5,
-                    width: 300,
+                    // width: 300,
                     // height: 400,
                     // layout: 'fit',
                     // frame: true,
                     split: false,
-                    frame: true,
                     collapsible: true,
                     items: [{
                         xtype: 'panel',
@@ -1331,7 +1248,7 @@ Ext.application({
         //          [1] condition,
         //          [2] lat,
         //          [3] lon,
-        //          [4] value,
+        //          [4] marker_size,
         //          [5] node_capacity,
         //          [6] node_id,
         //          [7] node_name,
@@ -1367,7 +1284,11 @@ Ext.application({
 
                 node.node_type = data[i][0];
                 node.node_name = data[i][7];
-                node.node_capacity = data[i][5];
+                if ( node.node_type === 'power' ||
+                     node.node_type === 'desal' )
+                    node.node_capacity = Ext.util.Format.number( data[i][5] , '0,000.00');
+                else if ( node.node_type === 'city' )
+                    node.node_population = Ext.util.Format.number( data[i][5] , '0,000');
 
 				markers.push( node );
 			}
@@ -1539,6 +1460,50 @@ Ext.application({
         // var h_map = Ext.getCmp('googleMap_initial').gmap;
         // showInitialNetwork(h_map);
         showInitialNetwork( Ext.getCmp('googleMap_initial').gmap );
+
+        // TODO: This did not work as an event listener for the map.
+        // TODO: Also tried with data binding.
+        // TODO: Call to zoom events on both maps became recursive.
+        function syncMaps() {
+            var h_map_initial = Ext.getCmp('googleMap_initial').gmap;
+            var h_map_optimized = Ext.getCmp('googleMap_optimized').gmap;
+            var zoom_prev = h_map_initial.getZoom();
+            var center_prev = h_map_initial.getZoom();
+
+            function changeZooms() {
+                var zoom_level;
+                var zoom_initial = h_map_initial.getZoom();
+                var zoom_optimized = h_map_optimized.getZoom();
+
+                if ( zoom_initial !== zoom_prev ) {
+                    zoom_level = zoom_initial;
+                    zoom_prev = zoom_level;
+                    // h_map_initial.setZoom(zoom_level);
+                    h_map_optimized.setZoom(zoom_level);
+                    console.log('Zoom: ' + zoom_level);
+                // } else {
+                //     zoom_level = zoom_optimized;
+                //     zoom_prev = zoom_level;
+                //     h_map_initial.setZoom(zoom_level);
+                //     // h_map_optimized.setZoom(zoom_level);
+                //     console.log('Zoom: ' + zoom_level);
+                }
+            }
+            google.maps.event.addListener(h_map_initial, 'zoom_changed', changeZooms);
+            google.maps.event.addListener(h_map_optimized, 'zoom_changed', changeZooms);
+
+            // google.maps.event.addListener(h_map_initial, 'zoom_changed', function() {
+            //     var zoomLevel = h_map_initial.getZoom();
+            //     h_map_optimized.setZoom(zoomLevel);
+            //     console.log('Zoom: ' + zoomLevel);
+            // });
+            // google.maps.event.addListener(h_map_optimized, 'zoom_changed', function() {
+            //     var zoomLevel = h_map_optimized.getZoom();
+            //     h_map_initial.setZoom(zoomLevel);
+            //     console.log('Zoom: ' + zoomLevel);
+            // });
+        }
+        // syncMaps();
 
 
 		//

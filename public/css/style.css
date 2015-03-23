@@ -13,6 +13,12 @@ input.hidden { display: none; }
 	margin: 5px;
 	font-size: 12px;
 	font-family: Arial, sans-serif;
+    border-radius: 25px;
+    opacity: 0.4;
+}
+
+.legend:hover {
+    opacity: 1.0;
 }
 
 #legend img {
@@ -41,4 +47,8 @@ input.hidden { display: none; }
 
 .ver_list .x-form-cb-checked{
     font-weight:bold;
+}
+
+.description {
+	color: #FF0000;
 }
